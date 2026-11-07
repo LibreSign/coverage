@@ -11,7 +11,7 @@ This repository uses **[octocov](https://github.com/k1LoW/octocov) central mode*
 
 ## Pages
 
-Once Pages is enabled, reports will be available at **https://libresign.github.io/coverage/**:
+GitHub Pages is configured for workflow deployment. During homologation, reports will be available at **https://libresign.github.io/coverage/**:
 
 - `/`: repositories and current octocov metrics/badges.
 - `/libresign/`: the existing PHPUnit HTML report for the latest successful main CI run.
@@ -35,3 +35,9 @@ The workflow uses a single reference matrix artifact. With multiple future PHP/N
 - Changes must follow DCO and signed-commit rules.
 - Octocov central `push` mode remains disabled to avoid unsigned automated commits.
 - Coveralls remains in place until independent reports, history, badges and publishing have been verified.
+
+## Homologation mode
+
+Until the source PR is reviewed and merged, the Pages workflow uses a clearly labeled, real Octocov report generated from a PHPUnit Clover artifact in PR #9387 (not from main). The preview is stored as a separate [release asset](https://github.com/LibreSign/coverage/releases/tag/octocov-preview-2026-11-07); it is not synthetic data.
+
+A manual dispatch can specify a source PHPUnit run ID using `preview_run_id`. When a successful main run produces both PHPUnit and native Octocov artifacts, regular publishing automatically selects that main run and disables the preview fallback. The temporary fallback should be removed after upstream merge and verification.

@@ -5,6 +5,11 @@ name: Publish coverage pages
 
 on:
   workflow_dispatch:
+    inputs:
+      preview_run_id:
+        description: 'Optional LibreSign pull request run ID to preview before merge'
+        required: false
+        type: string
   push:
     branches:
       - main
@@ -49,28 +54,60 @@ jobs:
       - name: Prepare output
         run: mkdir -p site/libresign site/badges
 
-      - name: Generate repository index and badges with octocov central mode
-        uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
-        with:
-          github-token: ${{ steps.source-token.outputs.token }}
-          version: v0.83.5
-
-      - name: Find latest successful main PHPUnit run with preserved artifacts
+      - name: Select source PHPUnit run
         id: source
+        env:
+          GH_TOKEN: ${{ steps.source-token.outputs.token }}
+          PREVIEW_RUN_ID: ${{ inputs.preview_run_id || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${PREVIEW_RUN_ID}" ]]; then
+            [[ "${PREVIEW_RUN_ID}" =~ ^[0-9]+$ ]] || { echo '::error::Invalid preview run ID'; exit 1; }
+            echo "run_id=${PREVIEW_RUN_ID}" >> "${GITHUB_OUTPUT}"
+            echo 'preview=true' >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          for run_id in $(gh api 'repos/LibreSign/libresign/actions/workflows/phpunit-sqlite.yml/runs?branch=main&status=success&per_page=30' --jq '.workflow_runs[].id'); do
+            count="$(gh api "repos/LibreSign/libresign/actions/runs/${run_id}/artifacts" --jq '[.artifacts[] | select((.expired == false) and (.name | startswith("phpunit-coverage-")))] | length')"
+            if [[ "${count}" -gt 0 ]]; then
+              echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+              echo 'preview=false' >> "${GITHUB_OUTPUT}"
+              exit 0
+            fi
+          done
+          # Homologation only. This real PHPUnit run is from PR #9387.
+          echo 'run_id=42426595978' >> "${GITHUB_OUTPUT}"
+          echo 'preview=true' >> "${GITHUB_OUTPUT}"
+
+      - name: Load real Octocov preview until source main is available
+        if: steps.source.outputs.preview == 'true'
         env:
           GH_TOKEN: ${{ steps.source-token.outputs.token }}
         shell: bash
         run: |
           set -euo pipefail
-          for run_id in $(gh api 'repos/LibreSign/libresign/actions/workflows/phpunit-sqlite.yml/runs?branch=main&status=success&per_page=30' --jq '.workflow_runs[].id'); do
-            count="$(gh api "repos/LibreSign/libresign/actions/runs/${run_id}/artifacts" --jq '[.artifacts[] | select((.expired == false) and (.name | startswith("phpunit-coverage-")))] | length')"
-            if [[ "${count}" -gt 0 ]]; then
-              echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
-              exit 0
-            fi
-          done
-          echo '::error::No non-expired main PHPUnit coverage artifacts found.'
-          exit 1
+          mkdir -p reports/LibreSign/libresign
+          gh release download octocov-preview-2026-11-07 --repo LibreSign/coverage --pattern 'octocov-preview-2026-11-07.json.gz' --dir .
+          gzip -dc octocov-preview-2026-11-07.json.gz > reports/LibreSign/libresign/report.json
+          test -s reports/LibreSign/libresign/report.json
+
+      - name: Confirm native Octocov report is present for main
+        if: steps.source.outputs.preview == 'false'
+        env:
+          GH_TOKEN: ${{ steps.source-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(gh api "repos/LibreSign/libresign/actions/runs/${{ steps.source.outputs.run_id }}/artifacts" --jq '[.artifacts[] | select((.expired == false) and (.name == "octocov-report"))] | length')"
+          [[ "${count}" -gt 0 ]] || { echo '::error::Selected main run lacks a native Octocov report'; exit 1; }
+
+      - name: Generate repository index and badges with octocov central mode
+        uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
+        with:
+          github-token: ${{ steps.source-token.outputs.token }}
+          version: v0.83.5
+          config: ${{ steps.source.outputs.preview == 'true' && '.octocov-preview.yml' || '.octocov.yml' }}
 
       - name: Download PHPUnit Clover and HTML artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -114,6 +151,9 @@ jobs:
           {
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
+            if [[ "${{ steps.source.outputs.preview }}" == 'true' ]]; then
+              printf '%s\n' '**Homologation preview:** real PHPUnit coverage from LibreSign/libresign PR #9387, not the main-branch baseline.' ''
+            fi
             printf '%s\n' '[View PHPUnit coverage by source line](./libresign/)'
             printf '%s\n' '[Download historical Coveralls data (2021-2026)](https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07)' ''
             printf '%s\n' '## Current repositories' ''
