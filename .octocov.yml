@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This is octocov's upstream central mode, not a custom coverage engine.
+central:
+  root: site/index.md
+  reports:
+    datastores:
+      - artifact://LibreSign/libresign
+  badges:
+    datastores:
+      - local://site/badges
+  # Never enable central.push: generated files are deployed as an artifact,
+  # not committed by an unsigned automation.
