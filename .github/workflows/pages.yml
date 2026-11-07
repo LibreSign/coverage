@@ -109,6 +109,8 @@ jobs:
           set -euo pipefail
           test -s site/index.md
           mv site/index.md site/octocov-index.md
+          # Badge files exist in Pages artifacts, never as unsigned commits.
+          sed -i 's#https://raw.githubusercontent.com/LibreSign/coverage/main/site/badges/#https://libresign.github.io/coverage/badges/#g' site/octocov-index.md
           {
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
