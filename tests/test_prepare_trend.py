@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,6 +46,24 @@ class TrendInjectionTests(unittest.TestCase):
         for phrase in ('Evolução', 'Fonte', 'Período', 'medição',
                        'Origem', 'histórico', 'Octocov — main'):
             self.assertNotIn(phrase, markup)
+
+    def test_svg_chart_keeps_its_aspect_ratio_at_wide_resolutions(self):
+        # A 340px height cap caused the viewBox to letterbox the plot
+        # horizontally instead of using the panel width at 190% zoom.
+        css = (Path(__file__).resolve().parents[1] / "site-theme" / "trend.css").read_text()
+        match = re.search(r"\.coverage-chart\s*\{([^}]*)\}", css)
+        self.assertIsNotNone(match)
+        declarations = match.group(1)
+        self.assertRegex(declarations, r"\bwidth\s*:\s*100%")
+        self.assertRegex(declarations, r"\bheight\s*:\s*auto")
+        self.assertNotRegex(declarations, r"\bmax-height\s*:")
+
+    def test_measured_points_are_exposed_as_svg_report_links(self):
+        script = (Path(__file__).resolve().parents[1] / "site-theme" / "trend.js").read_text()
+        self.assertIn("node('a', {href: report.href", script)
+        self.assertIn("class: 'coverage-point-link'", script)
+        self.assertIn("chart.setAttribute('role', 'group')", script)
+        self.assertNotIn("dot.addEventListener('click'", script)
 
     def test_rerunning_does_not_duplicate_chart(self):
         prepare(self.public)
