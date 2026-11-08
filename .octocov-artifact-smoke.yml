@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+central:
+  root: test-output/octocov-index.md
+  reports:
+    datastores:
+      - artifact://k1LoW/octocov
+  badges:
+    datastores:
+      - local://test-output/badges
