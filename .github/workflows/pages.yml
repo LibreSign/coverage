@@ -40,6 +40,8 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests -v
           node --check site-theme/theme.js
+          node --check site-theme/trend.js
+          bash -n scripts/build_coverage_history.sh
           bash -n scripts/prepare_native_coverage.sh
 
       - name: Prefer the native Octocov report and PHPUnit artifacts from main
@@ -112,6 +114,12 @@ jobs:
           } > site/index.md
           rm site/octocov-index.md
 
+      - name: Compile verified coverage trend from archived measurements
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: bash scripts/build_coverage_history.sh
+
       - name: Build GitHub Pages with Jekyll
         uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
         with:
@@ -151,6 +159,8 @@ jobs:
           python3 scripts/prepare_site.py --public public --metadata downloads/metadata.json
           test -s public/assets/coverage-theme/theme.css
           test -s public/assets/coverage-theme/theme.js
+          python3 scripts/prepare_trend.py --public public
+          test -s public/assets/coverage-theme/trend.js
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1

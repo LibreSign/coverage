@@ -90,3 +90,29 @@ outputs. The upstream coverage data and rendered line-level reports remain
 unchanged in their source artifacts; the theme is inserted only into the
 published copies. Run the local checks with
 `python3 -m unittest discover -s tests -v`.
+
+## Coverage trend chart
+
+The homepage can display historical **total coverage percentage** with source
+selection, time-range filtering, build provenance and an accessible data table.
+Its legacy Coveralls series is rebuilt from the separately archived 2021–2026
+export, considering only the `main` branch and one observation per SHA.
+Periods without fresh observations are **not assigned fabricated coverage
+values**. The chart shows the last known value as a horizontal **dashed** line,
+with hover text that explicitly identifies the date and commit of the previous
+measurement. This distinguishes "last observed" from "measured on this date."
+A new measurement changes the value only on its actual timestamp. Significant
+scope changes (>30%) also use dashed segments rather than implying comparable
+intermediate measurements. The dotted bridge between levels is a visual
+transition, not an interpolated data point.
+
+New native Octocov data from actual successful `main` executions are stored
+as a **separate metric series**, not spliced into Coveralls' historical line.
+Archival metadata must contain the source SHA, run ID, UTC collection timestamp,
+and total/covered Octocov counters. The preview PR coverage is **not** treated
+as a production baseline.
+
+The chart is a presentation layer, not a coverage parser. Upstream Octocov and
+PHPUnit remain responsible for computing coverage; no additional PHPUnit run
+or Git commit of generated HTML is required. The chart's static JSON is
+regenerated at Pages build time from durable release data.
