@@ -2,6 +2,38 @@
    SPDX-License-Identifier: AGPL-3.0-or-later */
 
 /* Root landing page enhancements. Upstream PHPUnit report styles are untouched. */
+/* The Primer theme limits .container-lg to 1012px even on 4K screens.
+   Opt in on the generated landing page only. Keep readable margins and a
+   sensible max width instead of stretching every report to the viewport. */
+body.coverage-home > .container-lg {
+  box-sizing: border-box;
+  width: calc(100% - clamp(2rem, 6vw, 9rem));
+  max-width: 2880px;
+  margin-inline: auto;
+}
+
+/* On large monitors, the historic trend and file explorer are independent
+   dashboard panels. Keep them side-by-side, while summaries and repository
+   navigation stay full width. Never apply this to the PHPUnit HTML pages. */
+@media (min-width: 2100px) {
+  body.coverage-home > .container-lg {
+    display: grid;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.2fr);
+    column-gap: clamp(1rem, 1.5vw, 2rem);
+    align-items: start;
+  }
+  body.coverage-home > .container-lg > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  body.coverage-home #coverage-trend {
+    grid-column: 1;
+  }
+  body.coverage-home #coverage-explorer {
+    grid-column: 2;
+  }
+}
+
 .container-lg > h1:first-child { display: none; }
 #libresign-code-coverage { margin: 0 0 .4rem; border: 0; font-size: 1.8rem; }
 #coverage-overview, #coverage-explorer {

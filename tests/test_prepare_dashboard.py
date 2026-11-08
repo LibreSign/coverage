@@ -42,6 +42,7 @@ class DashboardMarkupTests(unittest.TestCase):
         prepare(self.root)
         page = self.path.read_text()
         self.assertIn(MARKER, page)
+        self.assertIn('<body class="coverage-home">', page)
         self.assertIn('70.0%', page)
         self.assertIn('21', page)
         self.assertIn('Uncovered lines', page)
@@ -61,6 +62,21 @@ class DashboardMarkupTests(unittest.TestCase):
         self.assertIn('badges/x.svg', page)
         self.assertIn('href="libresign/"', page)
         self.assertNotIn('edit/main/index.md', page)
+
+    def test_landing_layout_is_scoped_and_responsive(self):
+        prepare(self.root)
+        page = self.path.read_text()
+        self.assertIn('<body class="coverage-home">', page)
+        css = (Path(__file__).resolve().parents[1] / "site-theme" / "overview.css").read_text()
+        self.assertIn("body.coverage-home > .container-lg", css)
+        self.assertIn("max-width: 2880px", css)
+        self.assertIn("@media (min-width: 2100px)", css)
+        self.assertIn("grid-column: 2", css)
+
+    def test_jekyll_body_missing_fails_explicitly(self):
+        self.path.write_text(self.path.read_text().replace("<body>", "<main>"))
+        with self.assertRaisesRegex(ValueError, "Jekyll homepage body"):
+            prepare(self.root)
 
     def test_keeps_nonempty_octocov_metric_columns(self):
         page = SAMPLE.replace('<td>-</td><td>-</td>',
