@@ -68,14 +68,22 @@ jobs:
           test -s site/index.md
           mv site/index.md site/octocov-index.md
           sed -i 's#https://raw.githubusercontent.com/LibreSign/coverage/main/site/badges/#https://libresign.github.io/coverage/badges/#g' site/octocov-index.md
+          source_sha="$(jq -r '.source_commit_sha' downloads/metadata.json)"
+          source_run_id="$(jq -r '.source_run_id' downloads/metadata.json)"
+          [[ "${source_sha}" =~ ^[0-9a-f]{40}$ && "${source_run_id}" =~ ^[0-9]+$ ]] || {
+            echo '::error::Coverage snapshot has invalid source identity'
+            exit 1
+          }
           {
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
             if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
               printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not a main-branch baseline.' ''
             fi
+            printf 'Source: [GitHub Actions run %s](https://github.com/LibreSign/libresign/actions/runs/%s), commit %s.\\n\\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
             printf '%s\n' '[View PHPUnit coverage by source line](./libresign/)'
             printf '%s\n' '[Download historical Coveralls data (2021-2026)](https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07)' ''
+            printf '%s\\n' 'Metric note: Octocov measures instrumented statements in Clover; legacy Coveralls percentages use a different denominator and must not be compared directly.' ''
             printf '%s\n' '## Current repositories' ''
             cat site/octocov-index.md
           } > site/index.md
