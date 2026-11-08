@@ -9,7 +9,7 @@ The source code for **this publishing website** is in this repository:
 [the GitHub Actions publisher](.github/workflows/pages.yml),
 [Octocov configuration](.octocov.yml), and the
 [theme/navigation layer](site-theme/). The site at
-[libresign.github.io/coverage](https://libresign.github.io/coverage/)
+[coverage.libresign.coop](https://coverage.libresign.coop/)
 contains **generated HTML**, not a checkout of this repository. PHP coverage
 refers to the [LibreSign application source](https://github.com/LibreSign/libresign).
 
@@ -19,7 +19,7 @@ own upstream licenses.
 
 Static code coverage reports for repositories owned by [LibreSign](https://github.com/LibreSign).
 
-The public site is **https://libresign.github.io/coverage/** (temporary GitHub Pages URL). The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
+The canonical public site is **https://coverage.libresign.coop/**. The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
 
 ## Data flow
 
@@ -32,8 +32,12 @@ The public site is **https://libresign.github.io/coverage/** (temporary GitHub P
    main run** and checks that the native Octocov JSON records the same SHA.
 4. Octocov Central Mode generates repository badges and metrics, and GitHub
    Pages publishes the unchanged PHPUnit HTML details and the shared theme.
-5. A separate GitHub Release archive stores compressed native Octocov metrics
-   and Clover reports by SHA, independently of GitHub Actions artifact expiry.
+5. After the complete main PHPUnit workflow succeeds, a small
+   `workflow_run` notifier in LibreSign requests a central refresh using a
+   GitHub App token scoped only to `LibreSign/coverage`.
+6. **This repository** validates the source run, archives SHA/run/attempt-addressed
+   compressed Octocov and Clover measurements in its own GitHub Releases, and
+   republishes Pages. No archiving or Python processing runs in the PHP project.
 
 The GitHub Actions workflow selects `main` reports only; it never presents
 coverage from a pull request as a production baseline. While the source
@@ -67,15 +71,28 @@ DCO rules. The archive remains off the main Git branch, and Octocov
 
 The root Pages index lists LibreSign repositories with published data. Each repository's detailed HTML resides under its short name, e.g. `/libresign/`. Projects in other GitHub organizations do not belong in this repository.
 
-The current source reporter is `LibreSign/libresign/.github/workflows/phpunit-sqlite.yml`. Add more LibreSign repositories by publishing native Octocov artifacts and suitable HTML reports; do not duplicate the coverage parser or create a standalone coverage service.
+The source PHPUnit matrix is `LibreSign/libresign/.github/workflows/phpunit-sqlite.yml`. It calls the reusable collector [`.github/workflows/source-octocov.yml`](.github/workflows/source-octocov.yml) after PHPUnit completes; the collector generates an Octocov PR comparison and the native main-branch artifact in the **caller's** workflow run. `LibreSign/libresign/.github/workflows/coverage-publish.yml` subsequently dispatches a completed successful main run to the publisher. Add more LibreSign repositories by publishing native Octocov artifacts and suitable HTML reports; do not duplicate the coverage parser or create a standalone coverage service.
 
 ## Maintenance and security
 
 - The Pages job uses its normal `GITHUB_TOKEN` to read **public** source Actions artifacts; no additional GitHub App Actions permissions are required.
-- The source CI uses a narrowly scoped GitHub App with `contents:write` only to preserve historical release assets and trigger Pages refreshes, not to read coverage.
+- The LibreSign source notifier uses a GitHub App token scoped to
+  `LibreSign/coverage` solely to request `repository_dispatch` after a
+  completed, successful main run with a native Octocov artifact.
+- The publisher uses **its own** `GITHUB_TOKEN` with `contents:write` to archive
+  coverage Releases. It verifies the Octocov repository, ref, SHA, and
+  measurement before writing. The dispatch payload is not treated as
+  authoritative coverage data.
 - Keep `central.push` disabled; all source commits require DCO and signed commits.
-- Coveralls remains active during validation; do not remove it before comparing coverage and replacing historic reports/badges.
-- The custom DNS name is deliberately not configured yet.
+- Coveralls is the **historical source only**. Its 2021-2026 measurements remain archived and labeled separately; new reporting uses Octocov after LibreSign/libresign#9387 is merged.
+- The Cloudflare DNS record `coverage.libresign.coop` is a CNAME to
+  `libresign.github.io`. The GitHub Pages repository's
+  [Settings > Pages](https://github.com/LibreSign/coverage/settings/pages)
+  must separately register `coverage.libresign.coop` as **Custom domain**;
+  HTTPS can be enforced once GitHub provisions its certificate.
+  The Jekyll build explicitly sets that canonical URL with empty `baseurl`,
+  because the site is served from `/`, not `/coverage/`.
+  With a GitHub Actions Pages deployment, no `CNAME` file is needed.
 
 ## Theme and source navigation
 

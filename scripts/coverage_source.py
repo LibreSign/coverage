@@ -6,6 +6,7 @@
 import argparse
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 SOURCE_REPOSITORY = "LibreSign/libresign"
@@ -46,8 +47,35 @@ def validate_report(report: dict, commit_sha: str) -> None:
     if report.get("commit") != commit_sha:
         raise ValueError("Octocov commit differs from the source report run")
     coverage = report.get("coverage")
-    if not isinstance(coverage, dict) or coverage.get("total", 0) <= 0:
+    if not isinstance(coverage, dict):
         raise ValueError("missing Octocov coverage metrics")
+    covered, total = coverage.get("covered"), coverage.get("total")
+    if type(covered) is not int or type(total) is not int or total <= 0 or not 0 <= covered <= total:
+        raise ValueError("invalid Octocov coverage metrics")
+
+
+def metadata_for(report: dict, commit_sha: str, run_id: int, run_attempt: int) -> dict:
+    """Extract official main-run provenance without substituting PR observations."""
+    validate_report(report, commit_sha)
+    if type(run_id) is not int or run_id <= 0 or type(run_attempt) is not int or run_attempt <= 0:
+        raise ValueError("invalid GitHub Actions run identity")
+    stamp = report.get("timestamp")
+    if not isinstance(stamp, str):
+        raise ValueError("missing native report timestamp")
+    measured = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+    if measured.utcoffset() is None:
+        raise ValueError("native report timestamp must be timezone-aware")
+    return {
+        "repository": SOURCE_REPOSITORY,
+        "source_branch": "main",
+        "source_commit_sha": commit_sha,
+        "source_run_id": run_id,
+        "source_run_attempt": run_attempt,
+        "recorded_at": measured.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "covered": report["coverage"]["covered"],
+        "total": report["coverage"]["total"],
+        "preview": False,
+    }
 
 
 def main() -> None:
@@ -58,6 +86,12 @@ def main() -> None:
     check = sub.add_parser("verify")
     check.add_argument("report_json", type=Path)
     check.add_argument("source_sha")
+    metadata = sub.add_parser("metadata")
+    metadata.add_argument("report_json", type=Path)
+    metadata.add_argument("source_sha")
+    metadata.add_argument("source_run_id", type=int)
+    metadata.add_argument("source_run_attempt", type=int)
+    metadata.add_argument("output_path", type=Path)
     args = parser.parse_args()
     if args.command == "select":
         data = json.loads(args.artifacts_json.read_text())
@@ -66,6 +100,10 @@ def main() -> None:
             print(name)
     elif args.command == "verify":
         validate_report(json.loads(args.report_json.read_text()), args.source_sha)
+    elif args.command == "metadata":
+        report = json.loads(args.report_json.read_text(encoding="utf-8"))
+        result = metadata_for(report, args.source_sha, args.source_run_id, args.source_run_attempt)
+        args.output_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Validate the coverage publisher before merging; Pages itself only deploys
+# after a main push and requires release and Pages write permissions.
+name: Validate coverage publisher
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout publisher
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test archiving, provenance, and page generation
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Check static assets and shell scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check site-theme/theme.js
+          node --check site-theme/trend.js
+          node --check site-theme/overview.js
+          bash -n scripts/build_coverage_history.sh
+          bash -n scripts/prepare_native_coverage.sh
+          bash -n scripts/archive_coverage.sh

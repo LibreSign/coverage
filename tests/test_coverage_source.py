@@ -3,7 +3,7 @@
 
 import unittest
 
-from scripts.coverage_source import choose_reference, complete_source, validate_report
+from scripts.coverage_source import choose_reference, complete_source, metadata_for, validate_report
 
 
 class SourceArtifactSelectionTests(unittest.TestCase):
@@ -45,6 +45,33 @@ class SourceArtifactSelectionTests(unittest.TestCase):
             with self.subTest(updates=updates):
                 with self.assertRaises(ValueError):
                     validate_report(modified, sha)
+
+
+    def test_native_metadata_records_measured_counters_and_run_attempt(self):
+        sha = "a" * 40
+        report = {
+            "repository": "LibreSign/libresign", "ref": "refs/heads/main", "commit": sha,
+            "timestamp": "2026-11-07T23:51:03.341546702Z",
+            "coverage": {"covered": 21718, "total": 28544},
+        }
+        metadata = metadata_for(report, sha, 123, 2)
+        self.assertEqual(metadata["recorded_at"], "2026-11-07T23:51:03Z")
+        self.assertEqual(metadata["source_run_attempt"], 2)
+        self.assertEqual(metadata["covered"], 21718)
+        self.assertFalse(metadata["preview"])
+        for modified in (
+            {**report, "timestamp": "2026-11-07T23:51:03"},
+            {**report, "ref": "refs/pull/123/merge"},
+            {**report, "coverage": {"covered": True, "total": 10}},
+            {**report, "coverage": {"covered": 11, "total": 10}},
+        ):
+            with self.subTest(modified=modified):
+                with self.assertRaises(ValueError):
+                    metadata_for(modified, sha, 123, 1)
+        for invalid_run in (0, True, -1):
+            with self.subTest(run=invalid_run):
+                with self.assertRaises(ValueError):
+                    metadata_for(report, sha, invalid_run, 1)
 
     def test_reject_invalid_input_sha(self):
         with self.assertRaises(ValueError):
