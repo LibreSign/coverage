@@ -144,7 +144,7 @@
     const allVisible = previous ? [previous, ...points] : points;
 
     description.textContent = points.length
-      ? 'Latest: ' + formatPercent(latest.pct) + ' · ' + formatDate(latest.date)
+      ? 'Last main-branch measurement: ' + formatPercent(latest.pct) + ' · ' + formatDate(latest.date)
       : 'No new measurements · Last known: ' +
         formatPercent(latest.pct) + ' (' + formatDate(latest.date) + ')';
 

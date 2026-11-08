@@ -119,3 +119,29 @@ The chart is a presentation layer, not a coverage parser. Upstream Octocov and
 PHPUnit remain responsible for computing coverage; no additional PHPUnit run
 or Git commit of generated HTML is required. The chart's static JSON is
 regenerated at Pages build time from durable release data.
+
+## Latest-report overview and coverage explorer
+
+The root dashboard displays a latest-report overview, **explicitly labeled
+preview** until a verified main-branch report is published. It includes covered
+and uncovered *instrumented lines*, file counts and links to the exact source
+commit and CI run. These values are read from the same verified native
+Octocov report and are **not** calculated from historical Coveralls records.
+
+The **Explore coverage** section aggregates the existing Octocov file counters
+by directory, ranks directories and files by **uncovered lines**, and supports
+searching, filtering by directory and sorting files. Source-line links resolve
+to the previously generated PHPUnit HTML and are checked against the static
+output; where the HTML file is absent, the link uses the pinned GitHub source
+commit instead. It never re-runs PHPUnit, and no runner-internal absolute path
+is published.
+
+The original upstream Octocov index is consumed without modifying Octocov's
+templates. Only columns whose values are unavailable for **all** repositories
+are removed from the public presentation. The generated badge images remain
+visible, while the redundant, broken copy-details widget is omitted from the
+published homepage. Native badges and reports remain produced as before, and
+future populated Octocov columns reappear automatically.
+
+Both the overview JSON and its JavaScript/CSS are generated at Pages build
+time, including content-hashed asset URLs to avoid stale scripts.
