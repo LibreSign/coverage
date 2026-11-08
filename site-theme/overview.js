@@ -34,7 +34,10 @@
   function bar(pct) {
     const track = element('span', 'coverage-progress');
     track.setAttribute('aria-hidden', 'true');
-    const value = element('span', 'coverage-progress-fill');
+    // Descriptive tiers, not pass/fail thresholds. Adjacent values remain
+    // visible so meaning never depends on color alone.
+    const level = pct === null ? 'empty' : pct < 50 ? 'low' : pct < 80 ? 'medium' : 'high';
+    const value = element('span', 'coverage-progress-fill is-' + level);
     value.style.width = (pct === null ? 0 : Math.max(0, Math.min(100, pct))) + '%';
     track.append(value);
     return track;

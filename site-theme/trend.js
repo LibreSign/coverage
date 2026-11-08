@@ -157,7 +157,9 @@
     const compact = window.innerWidth < 660;
     const viewWidth = compact ? 420 : 1000;
     chart.setAttribute('viewBox', compact ? '0 0 420 310' : '0 0 1000 340');
-    chart.setAttribute('role', 'img');
+    // The SVG contains real links. Expose them to assistive technology;
+    // role=img would flatten interactive descendants into a single image.
+    chart.setAttribute('role', 'group');
     chart.setAttribute('aria-label', 'Total coverage over time. ' + description.textContent);
 
     const left = compact ? 48 : 64;
@@ -247,18 +249,25 @@
     points.forEach(point => {
       const measured = formatDate(point.date) + ' · ' + formatPercent(point.pct) +
         ' · ' + reportInfo(point).label;
-      const dot = node('circle', {cx: X(Date.parse(point.date)), cy: Y(point),
-        r: 3.3, class: 'coverage-dot', tabindex: 0, 'aria-label': measured});
-      dot.append(node('title', {}, measured));
-      dot.addEventListener('pointerenter', event => {
+      const report = reportInfo(point);
+      // A real SVG anchor is keyboard-accessible and opens the measurement
+      // directly, without requiring users to chase the details link below.
+      const link = node('a', {href: report.href, class: 'coverage-point-link',
+        'aria-label': 'Open report for ' + measured});
+      link.append(node('title', {}, 'Open ' + report.label));
+      // Keep the visual dot small, with a larger invisible pointer target.
+      link.append(node('circle', {cx: X(Date.parse(point.date)), cy: Y(point),
+        r: 12, class: 'coverage-dot-hit', 'aria-hidden': 'true'}));
+      link.append(node('circle', {cx: X(Date.parse(point.date)), cy: Y(point),
+        r: 3.3, class: 'coverage-dot', 'aria-hidden': 'true'}));
+      link.addEventListener('pointerenter', event => {
         showPoint(point);
         showTooltip(event);
       });
-      dot.addEventListener('pointermove', showTooltip);
-      dot.addEventListener('pointerleave', hideTooltip);
-      dot.addEventListener('click', () => showPoint(point));
-      dot.addEventListener('focus', () => showPoint(point));
-      chart.append(dot);
+      link.addEventListener('pointermove', showTooltip);
+      link.addEventListener('pointerleave', hideTooltip);
+      link.addEventListener('focus', () => showPoint(point));
+      chart.append(link);
     });
     showPoint(latest, !points.length);
   }

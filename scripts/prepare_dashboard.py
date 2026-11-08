@@ -147,6 +147,11 @@ EXPLORER = '''<section id="coverage-explorer" aria-labelledby="coverage-explorer
     </div>
     <a href="libresign/">Browse all source lines</a>
   </div>
+  <p class="coverage-level-legend" aria-label="Coverage color legend">
+    <span class="coverage-level-key is-low">Low (below 50%)</span>
+    <span class="coverage-level-key is-medium">Moderate (50–79%)</span>
+    <span class="coverage-level-key is-high">High (80% or more)</span>
+  </p>
   <div class="coverage-explorer-columns">
     <section class="coverage-panel" aria-labelledby="coverage-directories-title">
       <div class="coverage-panel-heading">
