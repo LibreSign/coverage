@@ -66,7 +66,3 @@ For publishing workflows, data integrity, and the repository layout, see the [Ma
 Quality-focused tests help teams detect regressions in workflows they rely on. Organizations can contribute reproducible problems, sponsor test improvements, and fund ongoing development.
 
 [Support LibreSign](https://github.com/sponsors/LibreSign) · [Project documentation](https://docs.libresign.coop/)
-
----
-
-Licensed under [AGPL-3.0-or-later](LICENSE).
