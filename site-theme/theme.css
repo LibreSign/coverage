@@ -1,0 +1,163 @@
+/* SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+   SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* A navigation/theme layer over Jekyll and upstream PHPUnit HTML, not a
+   replacement report renderer. */
+#coverage-toolbar {
+  position: fixed;
+  top: .6rem;
+  right: .75rem;
+  z-index: 10000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem;
+  max-width: calc(100vw - 1.5rem);
+  padding: .35rem;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: .55rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.14);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: .85rem;
+}
+#coverage-toolbar a,
+#coverage-toolbar button {
+  display: inline-block;
+  margin: 0;
+  padding: .36rem .6rem;
+  color: #0969da;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: .3rem;
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#coverage-toolbar a:hover,
+#coverage-toolbar button:hover { background: #eaeef2; }
+#coverage-toolbar button { border-color: #afb8c1; color: #24292f; }
+#coverage-toolbar a:focus-visible,
+#coverage-toolbar button:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+body { padding-top: 3.5rem !important; }
+
+html[data-coverage-theme="dark"] {
+  color-scheme: dark;
+  background: #0d1117;
+}
+html[data-coverage-theme="dark"] body {
+  color: #e6edf3 !important;
+  background: #0d1117 !important;
+}
+html[data-coverage-theme="dark"] #coverage-toolbar {
+  color: #e6edf3;
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 2px 10px rgba(0,0,0,.6);
+}
+html[data-coverage-theme="dark"] #coverage-toolbar a,
+html[data-coverage-theme="dark"] #coverage-toolbar button { color: #79c0ff; }
+html[data-coverage-theme="dark"] #coverage-toolbar button { border-color: #8b949e; }
+html[data-coverage-theme="dark"] #coverage-toolbar a:hover,
+html[data-coverage-theme="dark"] #coverage-toolbar button:hover { background: #30363d; }
+html[data-coverage-theme="dark"] a { color: #79c0ff; }
+html[data-coverage-theme="dark"] a:hover { color: #a5d6ff; }
+html[data-coverage-theme="dark"] h1,
+html[data-coverage-theme="dark"] h2,
+html[data-coverage-theme="dark"] h3,
+html[data-coverage-theme="dark"] h4,
+html[data-coverage-theme="dark"] h5,
+html[data-coverage-theme="dark"] h6 { color: #e6edf3; }
+
+/* Jekyll / github-pages-theme-primer */
+html[data-coverage-theme="dark"] .markdown-body { color: #e6edf3; }
+html[data-coverage-theme="dark"] .markdown-body h1,
+html[data-coverage-theme="dark"] .markdown-body h2 { border-bottom-color: #30363d; }
+html[data-coverage-theme="dark"] .markdown-body table tr,
+html[data-coverage-theme="dark"] .markdown-body table tr:nth-child(2n) {
+  color: #e6edf3;
+  background: #161b22;
+  border-color: #30363d;
+}
+html[data-coverage-theme="dark"] .markdown-body table tr:nth-child(2n) {
+  background: #1c2530;
+}
+html[data-coverage-theme="dark"] .markdown-body table th,
+html[data-coverage-theme="dark"] .markdown-body table td { border-color: #30363d; }
+html[data-coverage-theme="dark"] .markdown-body pre,
+html[data-coverage-theme="dark"] .markdown-body code { color: #e6edf3; background: #21262d; }
+html[data-coverage-theme="dark"] .markdown-body blockquote {
+  color: #a5adba;
+  border-left-color: #30363d;
+}
+
+/* PHPUnit's Bootstrap 4 and native per-line coverage styles. */
+html[data-coverage-theme="dark"] .breadcrumb {
+  background: #161b22;
+  color: #a5adba;
+}
+html[data-coverage-theme="dark"] .table,
+html[data-coverage-theme="dark"] .table th,
+html[data-coverage-theme="dark"] .table td {
+  color: #e6edf3;
+  border-color: #30363d;
+}
+html[data-coverage-theme="dark"] .table-hover tbody tr:hover {
+  color: #fff;
+  background: #21262d;
+}
+html[data-coverage-theme="dark"] .table tbody tr,
+html[data-coverage-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+  background-color: #161b22;
+}
+html[data-coverage-theme="dark"] .table .success,
+html[data-coverage-theme="dark"] .table td.success,
+html[data-coverage-theme="dark"] .table tr.success,
+html[data-coverage-theme="dark"] li.success,
+html[data-coverage-theme="dark"] span.success,
+html[data-coverage-theme="dark"] .covered-by-large-tests { background-color: #193b30 !important; }
+html[data-coverage-theme="dark"] .covered-by-medium-tests { background-color: #24503d !important; }
+html[data-coverage-theme="dark"] .covered-by-small-tests { background-color: #346b4d !important; }
+html[data-coverage-theme="dark"] .table .warning,
+html[data-coverage-theme="dark"] .table td.warning,
+html[data-coverage-theme="dark"] .table tr.warning,
+html[data-coverage-theme="dark"] li.warning,
+html[data-coverage-theme="dark"] span.warning,
+html[data-coverage-theme="dark"] .not-coverable { background-color: #51421f !important; }
+html[data-coverage-theme="dark"] .table .danger,
+html[data-coverage-theme="dark"] .table td.danger,
+html[data-coverage-theme="dark"] .table tr.danger,
+html[data-coverage-theme="dark"] li.danger,
+html[data-coverage-theme="dark"] span.danger,
+html[data-coverage-theme="dark"] .not-covered { background-color: #48262e !important; }
+html[data-coverage-theme="dark"] .table td.info { background-color: #1e3b52; }
+html[data-coverage-theme="dark"] .progress { background-color: #30363d; }
+html[data-coverage-theme="dark"] .table td.codeLine { color: #e6edf3; }
+html[data-coverage-theme="dark"] .table td span.default,
+html[data-coverage-theme="dark"] .table td span.keyword,
+html[data-coverage-theme="dark"] pre span.string { color: #e6edf3; }
+html[data-coverage-theme="dark"] .table td span.comment,
+html[data-coverage-theme="dark"] .table td span.html { color: #a5adba; }
+html[data-coverage-theme="dark"] svg text { fill: #c9d1d9; color: #c9d1d9; }
+html[data-coverage-theme="dark"] .nv-axis .tick line,
+html[data-coverage-theme="dark"] .nv-axis path { stroke: #8b949e; }
+html[data-coverage-theme="dark"] .nvtooltip {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+html[data-coverage-theme="dark"] .nvtooltip table,
+html[data-coverage-theme="dark"] .nvtooltip td { color: #e6edf3; }
+
+@media (max-width: 680px) {
+  #coverage-toolbar { position: fixed; top: .35rem; right: .35rem; }
+  #coverage-toolbar a,
+  #coverage-toolbar button { font-size: .75rem; padding: .3rem .35rem; }
+  body { padding-top: 3.5rem !important; }
+}
