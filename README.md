@@ -5,6 +5,18 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # LibreSign Coverage
 
+The source code for **this publishing website** is in this repository:
+[the GitHub Actions publisher](.github/workflows/pages.yml),
+[Octocov configuration](.octocov.yml), and the
+[theme/navigation layer](site-theme/). The site at
+[libresign.github.io/coverage](https://libresign.github.io/coverage/)
+contains **generated HTML**, not a checkout of this repository. PHP coverage
+refers to the [LibreSign application source](https://github.com/LibreSign/libresign).
+
+**License:** GNU Affero General Public License v3 or later (AGPL-3.0-or-later),
+see [LICENSE](LICENSE). Octocov and PHPUnit are external tools and retain their
+own upstream licenses.
+
 Static code coverage reports for repositories owned by [LibreSign](https://github.com/LibreSign).
 
 The public site is **https://libresign.github.io/coverage/** (temporary GitHub Pages URL). The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
@@ -34,3 +46,17 @@ The current source reporter is `LibreSign/libresign/.github/workflows/phpunit-sq
 - Keep `central.push` disabled; all source commits require DCO and signed commits.
 - Coveralls remains active during validation; do not remove it before comparing coverage and replacing historic reports/badges.
 - The custom DNS name is deliberately not configured yet.
+
+## Theme and source navigation
+
+The static site has an accessible light/dark theme toggle, initially following
+the operating system setting and remembering an explicit preference for
+subsequent pages. The source links lead to this publisher and the LibreSign
+application; PHP source-line pages also link to the matching source file at
+the **exact commit** recorded in the coverage snapshot.
+
+This is a small navigation layer over the original Octocov and PHPUnit
+outputs. The upstream coverage data and rendered line-level reports remain
+unchanged in their release assets; the theme is inserted only into the
+published copies. Run the local checks with
+`python3 -m unittest discover -s tests -v`.

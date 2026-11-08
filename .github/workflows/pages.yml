@@ -33,6 +33,13 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Check theme and publishing code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -v
+          node --check site-theme/theme.js
+
       - name: Download latest published LibreSign coverage snapshot
         env:
           GH_TOKEN: ${{ github.token }}
@@ -77,6 +84,7 @@ jobs:
           {
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
+            printf '%s\n' '[Coverage website source](https://github.com/LibreSign/coverage) · [LibreSign application source](https://github.com/LibreSign/libresign) · [Publishing workflow](https://github.com/LibreSign/coverage/blob/main/.github/workflows/pages.yml)' ''
             if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
               printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not a main-branch baseline.' ''
             fi
@@ -120,6 +128,14 @@ jobs:
           test -s public/index.html
           test -s public/libresign/index.html
           test -s public/libresign/dashboard.html
+
+      - name: Add theme and source-code navigation to published HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/prepare_site.py --public public --metadata downloads/metadata.json
+          test -s public/assets/coverage-theme/theme.css
+          test -s public/assets/coverage-theme/theme.js
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
