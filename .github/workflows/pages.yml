@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: write # only within LibreSign/coverage, for verified release archives
-  actions: read # public, cross-repo Octocov artifacts use this repository token
+  actions: read # source Octocov reports and PHPUnit artifacts
   pages: write
   id-token: write
 
@@ -34,19 +34,27 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check theme and publishing code
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.3'
+          extensions: dom, mbstring, xml, zlib, phar
+          coverage: none
+
+      - name: Install locked development dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Validate publisher and browser code
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m unittest discover -s tests -v
+          composer test
+          for source in src/*.php scripts/*.php tests/*.php templates/*.php; do php -l "$source"; done
           node --check site-theme/theme.js
           node --check site-theme/trend.js
           node --check site-theme/overview.js
-          bash -n scripts/build_coverage_history.sh
-          bash -n scripts/prepare_native_coverage.sh
-          bash -n scripts/archive_coverage.sh
 
-      - name: Preserve the exact successful main run that triggered this update
+      - name: Archive the exact successful main run triggering this update
         if: github.event_name == 'repository_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,28 +65,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/prepare_native_coverage.sh
+          php scripts/coverage.php native
           grep -qx 'available=true' "${GITHUB_OUTPUT}"
-          bash scripts/archive_coverage.sh
-          # The published homepage always uses the newest successful main
-          # measurement, even if dispatches arrive out of order.
+          php scripts/coverage.php archive
+          # Do not publish older dispatched coverage as the latest measurement.
           rm -rf downloads site/libresign site/badges
 
-      - name: Prefer the native Octocov report and PHPUnit artifacts from main
+      - name: Select verified native Octocov and PHPUnit main artifacts
         id: native
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: bash scripts/prepare_native_coverage.sh
+        run: php scripts/coverage.php native
 
-      - name: Archive verified main coverage in this publishing repository
+      - name: Archive verified main measurements in the publishing repository
         if: steps.native.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: bash scripts/archive_coverage.sh
+        run: php scripts/coverage.php archive
 
-      - name: Download legacy snapshot only while native reporting is unavailable
+      - name: Download legacy snapshot while main artifacts are unavailable
         if: steps.native.outputs.available != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -87,79 +92,28 @@ jobs:
           set -euo pipefail
           mkdir -p downloads
           gh release download coverage-latest --repo "${GITHUB_REPOSITORY}" --dir downloads
-          (cd downloads && sha256sum -c checksums.sha256)
-          test -s downloads/metadata.json
+          php scripts/coverage.php restore-fallback
 
-      - name: Restore fallback report while the source PR awaits review
-        if: steps.native.outputs.available != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p reports/LibreSign/libresign site/libresign site/badges
-          gzip -dc downloads/libresign-octocov.json.gz > reports/LibreSign/libresign/report.json
-          gzip -dc downloads/libresign-clover.xml.gz > site/libresign/clover.xml
-          tar -xzf downloads/libresign-html.tar.gz -C site/libresign
-          test -s reports/LibreSign/libresign/report.json
-          test -s site/libresign/clover.xml
-          test -s site/libresign/index.html
-
-      - name: Generate repository index and badges with upstream octocov
+      - name: Generate index and badges with upstream Octocov
         uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
         with:
           github-token: ${{ github.token }}
           version: v0.83.5
           config: ${{ steps.native.outputs.available == 'true' && '.octocov.yml' || '.octocov-fallback.yml' }}
 
-      - name: Add project navigation and historical archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s site/index.md
-          mv site/index.md site/octocov-index.md
-          # Relative URLs work at both the legacy project Pages path and the custom-domain root.
-          sed -i 's#https://raw.githubusercontent.com/LibreSign/coverage/main/site/badges/#badges/#g' site/octocov-index.md
-          source_sha="$(jq -r '.source_commit_sha' downloads/metadata.json)"
-          source_run_id="$(jq -r '.source_run_id' downloads/metadata.json)"
-          [[ "${source_sha}" =~ ^[0-9a-f]{40}$ && "${source_run_id}" =~ ^[0-9]+$ ]] || {
-            echo '::error::Coverage snapshot has invalid source identity'
-            exit 1
-          }
-          {
-            printf '%s\n' '---' 'title: LibreSign Coverage' '---'
-            printf '%s\n' '# LibreSign code coverage' ''
-            printf '%s\n' '[Browse coverage by file](./libresign/) · [Application code](https://github.com/LibreSign/libresign) · [Website code](https://github.com/LibreSign/coverage)' ''
-            printf '%s\n' '<!-- coverage-trend-slot -->' ''
-            cat site/octocov-index.md
-          } > site/index.md
-          rm site/octocov-index.md
+      - name: Add homepage navigation
+        run: php scripts/coverage.php site-index
 
-      - name: Summarize verified Octocov coverage without rerunning tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/build_coverage_summary.py
-          test -s site/assets/coverage-summary.json
+      - name: Summarize verified coverage without rerunning PHP tests
+        run: php scripts/coverage.php summary
 
-      - name: Compile verified coverage trend from archived measurements
+      - name: Build coverage history from verified archived measurements
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: bash scripts/build_coverage_history.sh
+        run: php scripts/coverage.php history
 
-      - name: Build Jekyll at the custom domain root
-        shell: bash
-        run: |
-          set -euo pipefail
-          # GitHub Pages Actions deployments ignore CNAME files. The site is
-          # a project Pages site but serves directly at the custom-domain root.
-          test ! -e site/_config.yml || {
-            echo '::error::Unexpected upstream Jekyll config; review before replacing'
-            exit 1
-          }
-          cat > site/_config.yml <<'JEKYLL'
-          url: "https://coverage.libresign.coop"
-          baseurl: ""
-          JEKYLL
+      - name: Configure the canonical GitHub Pages domain
+        run: php scripts/coverage.php jekyll-config
 
       - name: Build GitHub Pages with Jekyll
         uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
@@ -167,50 +121,19 @@ jobs:
           source: ./site
           destination: ./_site
 
-      - name: Preserve PHPUnit static assets excluded by Jekyll
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Jekyll skips underscore-prefixed asset directories and its Docker
-          # action creates a build tree that the runner cannot write into.
-          # Stage a writable copy, preserving the rendered root index.
-          mkdir -p public
-          cp -R --no-preserve=mode _site/. public/
-          for asset_dir in _css _js _icons; do
-            if [[ ! -d "site/libresign/$asset_dir" ]]; then
-              echo "::error::Missing PHPUnit asset directory: $asset_dir"
-              exit 1
-            fi
-            cp -R "site/libresign/$asset_dir" public/libresign/
-          done
-          for asset in _css/bootstrap.min.css _css/style.css _js/jquery.min.js _icons/file-directory.svg; do
-            if [[ ! -s "public/libresign/$asset" ]]; then
-              echo "::error::Missing PHPUnit asset: $asset"
-              exit 1
-            fi
-          done
-          test -s public/index.html
-          test -s public/libresign/index.html
-          test -s public/libresign/dashboard.html
-          test -s public/assets/css/style.css
-          grep -Fq 'https://coverage.libresign.coop/' public/index.html
-          if grep -Fq '/coverage/assets/' public/index.html; then
-            echo '::error::Generated Jekyll assets still use the old project path'
-            exit 1
-          fi
+      - name: Preserve PHPUnit static assets and verify generated site
+        run: php scripts/coverage.php stage-public
 
       - name: Add theme and source-code navigation to published HTML
         shell: bash
         run: |
           set -euo pipefail
-          python3 scripts/prepare_site.py --public public --metadata downloads/metadata.json
-          test -s public/assets/coverage-theme/theme.css
+          php scripts/coverage.php theme --public public --metadata downloads/metadata.json
+          php scripts/coverage.php trend-page --public public
+          php scripts/coverage.php dashboard --public public
           test -s public/assets/coverage-theme/theme.js
-          python3 scripts/prepare_trend.py --public public
           test -s public/assets/coverage-theme/trend.js
-          python3 scripts/prepare_dashboard.py --public public
           test -s public/assets/coverage-theme/overview.js
-          test -s public/assets/coverage-theme/overview.css
           test -s public/assets/coverage-summary.json
 
       - name: Upload GitHub Pages artifact

@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# Validate the coverage publisher before merging; Pages itself only deploys
-# after a main push and requires release and Pages write permissions.
 name: Validate coverage publisher
 
 on:
@@ -20,16 +18,26 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Test archiving, provenance, and page generation
-        run: python3 -m unittest discover -s tests -v
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.3'
+          extensions: dom, mbstring, xml, zlib, phar
+          coverage: none
 
-      - name: Check static assets and shell scripts
+      - name: Install locked development dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run PHP unit and integration tests
+        run: composer test
+
+      - name: Check PHP syntax and browser assets
         shell: bash
         run: |
           set -euo pipefail
+          for source in src/*.php scripts/*.php tests/*.php templates/*.php; do
+            php -l "$source"
+          done
           node --check site-theme/theme.js
           node --check site-theme/trend.js
           node --check site-theme/overview.js
-          bash -n scripts/build_coverage_history.sh
-          bash -n scripts/prepare_native_coverage.sh
-          bash -n scripts/archive_coverage.sh
