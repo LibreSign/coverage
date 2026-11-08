@@ -116,7 +116,8 @@ jobs:
           set -euo pipefail
           test -s site/index.md
           mv site/index.md site/octocov-index.md
-          sed -i 's#https://raw.githubusercontent.com/LibreSign/coverage/main/site/badges/#https://libresign.github.io/coverage/badges/#g' site/octocov-index.md
+          # Relative URLs work at both the legacy project Pages path and the custom-domain root.
+          sed -i 's#https://raw.githubusercontent.com/LibreSign/coverage/main/site/badges/#badges/#g' site/octocov-index.md
           source_sha="$(jq -r '.source_commit_sha' downloads/metadata.json)"
           source_run_id="$(jq -r '.source_run_id' downloads/metadata.json)"
           [[ "${source_sha}" =~ ^[0-9a-f]{40}$ && "${source_run_id}" =~ ^[0-9]+$ ]] || {
@@ -144,6 +145,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: bash scripts/build_coverage_history.sh
+
+      - name: Build Jekyll at the custom domain root
+        shell: bash
+        run: |
+          set -euo pipefail
+          # GitHub Pages Actions deployments ignore CNAME files. The site is
+          # a project Pages site but serves directly at the custom-domain root.
+          test ! -e site/_config.yml || {
+            echo '::error::Unexpected upstream Jekyll config; review before replacing'
+            exit 1
+          }
+          cat > site/_config.yml <<'JEKYLL'
+          url: "https://coverage.libresign.coop"
+          baseurl: ""
+          JEKYLL
 
       - name: Build GitHub Pages with Jekyll
         uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
@@ -176,6 +192,12 @@ jobs:
           test -s public/index.html
           test -s public/libresign/index.html
           test -s public/libresign/dashboard.html
+          test -s public/assets/css/style.css
+          grep -Fq 'https://coverage.libresign.coop/' public/index.html
+          if grep -Fq '/coverage/assets/' public/index.html; then
+            echo '::error::Generated Jekyll assets still use the old project path'
+            exit 1
+          fi
 
       - name: Add theme and source-code navigation to published HTML
         shell: bash

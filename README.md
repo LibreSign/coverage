@@ -9,7 +9,7 @@ The source code for **this publishing website** is in this repository:
 [the GitHub Actions publisher](.github/workflows/pages.yml),
 [Octocov configuration](.octocov.yml), and the
 [theme/navigation layer](site-theme/). The site at
-[libresign.github.io/coverage](https://libresign.github.io/coverage/)
+[coverage.libresign.coop](https://coverage.libresign.coop/)
 contains **generated HTML**, not a checkout of this repository. PHP coverage
 refers to the [LibreSign application source](https://github.com/LibreSign/libresign).
 
@@ -19,7 +19,7 @@ own upstream licenses.
 
 Static code coverage reports for repositories owned by [LibreSign](https://github.com/LibreSign).
 
-The public site is **https://libresign.github.io/coverage/** (temporary GitHub Pages URL). The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
+The canonical public site is **https://coverage.libresign.coop/**. The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
 
 ## Data flow
 
@@ -85,7 +85,14 @@ The source PHPUnit matrix is `LibreSign/libresign/.github/workflows/phpunit-sqli
   authoritative coverage data.
 - Keep `central.push` disabled; all source commits require DCO and signed commits.
 - Coveralls is the **historical source only**. Its 2021-2026 measurements remain archived and labeled separately; new reporting uses Octocov after LibreSign/libresign#9387 is merged.
-- The custom DNS name is deliberately not configured yet.
+- The Cloudflare DNS record `coverage.libresign.coop` is a CNAME to
+  `libresign.github.io`. The GitHub Pages repository's
+  [Settings > Pages](https://github.com/LibreSign/coverage/settings/pages)
+  must separately register `coverage.libresign.coop` as **Custom domain**;
+  HTTPS can be enforced once GitHub provisions its certificate.
+  The Jekyll build explicitly sets that canonical URL with empty `baseurl`,
+  because the site is served from `/`, not `/coverage/`.
+  With a GitHub Actions Pages deployment, no `CNAME` file is needed.
 
 ## Theme and source navigation
 
