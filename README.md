@@ -56,7 +56,8 @@ This repository publishes the dashboard at **[coverage.libresign.coop](https://c
 [Report a dashboard issue](https://github.com/LibreSign/coverage/issues) or propose a change in this repository. Run the existing checks before submitting:
 
 ```bash
-python3 -m unittest discover -s tests -v
+composer install
+composer test
 ```
 
 For publishing workflows, data integrity, and the repository layout, see the [Maintainer guide](docs/maintainers.md).

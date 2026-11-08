@@ -34,8 +34,10 @@ interpreting measurements.
 
 ## Preserve the user experience
 
-- Use existing scripts and tools before adding dependencies or parallel
-  implementations. Keep original Octocov/PHPUnit measurements unchanged.
+- Keep backend reporting, archive validation, and tests in PHP. The
+  JavaScript browser interface and upstream Jekyll/Octocov actions remain separate.
+  Do not add a second implementation in another language.
+- Reuse existing scripts and keep Octocov/PHPUnit measurements unchanged.
 - Keep the homepage responsive, accessible, keyboard-usable, and compatible
   with light/dark themes. Do not regress detailed PHPUnit report pages.
 - Treat coverage as a diagnostic signal; prefer meaningful assertions and
@@ -43,9 +45,10 @@ interpreting measurements.
 
 ## Validate changes
 
-- Tests: `python3 -m unittest discover -s tests -v`
-- Modified JavaScript: `node --check <file>`
-- Modified shell scripts: `bash -n <file>`
+- PHP 8.3+: `composer install && composer test`.
+- Modified PHP: `php -l <file>`.
+- Modified JavaScript: `node --check <file>`.
+- Keep GitHub Actions shell snippets limited to simple orchestration.
 - Modified GitHub Actions: `actionlint .github/workflows/*.yml`
 - For UI changes, inspect mobile, laptop, wide desktop, and browser zoom.
 - All commits require DCO and cryptographic signatures. Do not bypass
