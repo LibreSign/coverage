@@ -80,10 +80,10 @@ jobs:
             if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
               printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not a main-branch baseline.' ''
             fi
-            printf 'Source: [GitHub Actions run %s](https://github.com/LibreSign/libresign/actions/runs/%s), commit %s.\\n\\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
+            printf 'Source: [GitHub Actions run %s](https://github.com/LibreSign/libresign/actions/runs/%s), commit %s.\n\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
             printf '%s\n' '[View PHPUnit coverage by source line](./libresign/)'
             printf '%s\n' '[Download historical Coveralls data (2021-2026)](https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07)' ''
-            printf '%s\\n' 'Metric note: Octocov measures instrumented statements in Clover; legacy Coveralls percentages use a different denominator and must not be compared directly.' ''
+            printf '%s\n' 'Metric note: Octocov measures instrumented statements in Clover; legacy Coveralls percentages use a different denominator and must not be compared directly.' ''
             printf '%s\n' '## Current repositories' ''
             cat site/octocov-index.md
           } > site/index.md
