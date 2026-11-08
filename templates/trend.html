@@ -1,0 +1,27 @@
+<section id="coverage-trend" aria-labelledby="trend-title">
+  <h2 id="trend-title">Total coverage over time</h2>
+  <div class="coverage-controls">
+    <label>Period
+      <select id="trend-period">
+        <option value="all">All time</option>
+        <option value="year">Last 12 months</option>
+        <option value="quarter">Last 90 days</option>
+      </select>
+    </label>
+  </div>
+  <p id="trend-status" aria-live="polite">Loading history…</p>
+  <svg class="coverage-chart" aria-label="Total coverage over time"></svg>
+  <div id="trend-hover-tooltip" role="tooltip" hidden></div>
+  <a id="trend-point-details" href="#" hidden rel="noopener noreferrer"></a>
+  <p class="coverage-legend"><small>Dots: measurements · Dashed: last known</small></p>
+  <details id="trend-table-details"><summary>View measurements</summary>
+    <table id="trend-data"><thead><tr><th>Date</th><th>Coverage</th><th>Covered / Total</th>
+      <th>Commit</th><th>Report</th></tr></thead><tbody></tbody></table>
+  </details>
+  <details class="coverage-about"><summary>About the data</summary>
+    <p>Historical measurements come from Coveralls; newer measurements come from Octocov.
+       Their calculations differ, so we do not connect the two methods.</p>
+    <a href="https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07">
+      Historical data archive</a>
+  </details>
+</section>

@@ -30,10 +30,11 @@ A `repository_dispatch` event is a **hint**, not proof: the receiver verifies it
 
 Key implementation files:
 
-- [`scripts/prepare_native_coverage.sh`](../scripts/prepare_native_coverage.sh): selects and validates native source artifacts.
-- [`scripts/coverage_source.py`](../scripts/coverage_source.py): verifies report provenance and metadata.
-- [`scripts/archive_coverage.sh`](../scripts/archive_coverage.sh): preserves verified measurements and checksums.
-- [`scripts/build_coverage_summary.py`](../scripts/build_coverage_summary.py): derives directory and file summaries from verified data.
+- [`src/SourceCoverage.php`](../src/SourceCoverage.php): selects PHPUnit artifacts, verifies run provenance, and derives native metadata.
+- [`src/CoverageSummary.php`](../src/CoverageSummary.php): validates and summarizes existing Octocov measurements for the explorer.
+- [`src/CoverageHistory.php`](../src/CoverageHistory.php): keeps historical Coveralls and main Octocov series distinct.
+- [`src/Publisher.php`](../src/Publisher.php): stores verified measurements and checksums in GitHub Releases.
+- [`scripts/coverage.php`](../scripts/coverage.php): PHP CLI entry point used by both publishing workflows.
 
 ## Retention and history
 
@@ -54,26 +55,27 @@ Octocov's `github://` commit-backed storage and `central.push` are not used: gen
 
 ## Website layout and source links
 
-- [`scripts/prepare_dashboard.py`](../scripts/prepare_dashboard.py) builds the homepage summary and explorer.
-- [`scripts/prepare_trend.py`](../scripts/prepare_trend.py) and [`scripts/coverage_trend.py`](../scripts/coverage_trend.py) build the history presentation and data.
-- [`scripts/prepare_site.py`](../scripts/prepare_site.py) adds the shared theme to the published reports.
-- [`site-theme/`](../site-theme/) contains the browser assets. Changes to the homepage must not unexpectedly change the PHPUnit report layout.
+- [`src/Site.php`](../src/Site.php) builds the homepage summary, explorer, history chart insertion, and report-theme navigation.
+- [`src/Build.php`](../src/Build.php) configures Jekyll and stages the generated pages and fallback report.
+- [`templates/`](../templates/) holds the static HTML and PHP view markup.
+- [`site-theme/`](../site-theme/) contains browser JavaScript and CSS. Changes to the homepage must not unexpectedly change the PHPUnit report layout.
 
-Source-line links must use the verified commit SHA. The publisher copies/references the report content instead of recomputing PHP line coverage. Site assets use content-hashed URLs to prevent stale scripts after deployments.
+Source-line links must use the verified commit SHA. The publisher reuses PHPUnit and Octocov data rather than rerunning coverage. Site assets use content hashes to prevent stale scripts after deployments.
 
 ## Validation before a PR
 
-The [PR validation workflow](../.github/workflows/validate.yml) checks scripts and static assets without requiring release-writing permissions. Local equivalent checks:
+The [PR validation workflow](../.github/workflows/validate.yml) runs PHP 8.3 with dependencies locked in `composer.lock`. Run locally:
 
 ```bash
-python3 -m unittest discover -s tests -v
+composer install
+composer test
+composer lint
 node --check site-theme/theme.js
 node --check site-theme/overview.js
 node --check site-theme/trend.js
-bash -n scripts/build_coverage_history.sh scripts/prepare_native_coverage.sh scripts/archive_coverage.sh
 ```
 
-For changes to layouts, interactions, or theme, also check the actual site in a browser at mobile, laptop, and wide-screen widths. Validate that color, labels, keyboard navigation, and source URLs remain usable.
+For changes to layouts, interactions, or theme, also inspect the actual site at mobile, laptop, and wide-screen sizes. Validate contrast, keyboard navigation, and source URLs. The GitHub Actions workflows retain only small shell snippets for orchestrating external tools; backend report processing and tests use PHP.
 
 ## Diagnosing a failed publication
 

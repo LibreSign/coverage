@@ -3,3 +3,7 @@
 
 __pycache__/
 *.pyc
+/vendor/
+/.phpunit.cache/
+/.phpunit-watcher.yml
+/.phpunit.result.cache
