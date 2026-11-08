@@ -198,6 +198,11 @@ def prepare(public: Path) -> None:
     if table is None:
         raise ValueError("Octocov repository table is missing")
     content = content[:table.start(2)] + simplify_table(table.group(2), summary["covered"] * 100 / summary["total"]) + content[table.end(2):]
+    # Only the homepage opts into the fluid dashboard. The Jekyll Primer
+    # theme otherwise caps .container-lg at 1012px on every viewport.
+    if content.count("<body>") != 1:
+        raise ValueError("Expected one Jekyll homepage body")
+    content = content.replace("<body>", '<body class="coverage-home">', 1)
     content = content.replace(
         "<!-- LibreSign trend chart -->",
         MARKER + overview(summary) + "\n<!-- LibreSign trend chart -->", 1
