@@ -13,7 +13,7 @@ on:
     - cron: '22 4,16 * * *'
 
 permissions:
-  contents: read
+  contents: write # only within LibreSign/coverage, for verified release archives
   actions: read # public, cross-repo Octocov artifacts use this repository token
   pages: write
   id-token: write
@@ -44,6 +44,25 @@ jobs:
           node --check site-theme/overview.js
           bash -n scripts/build_coverage_history.sh
           bash -n scripts/prepare_native_coverage.sh
+          bash -n scripts/archive_coverage.sh
+
+      - name: Preserve the exact successful main run that triggered this update
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_SOURCE_REPOSITORY: ${{ github.event.client_payload.source_repository }}
+          COVERAGE_SOURCE_RUN_ID: ${{ github.event.client_payload.source_run_id }}
+          COVERAGE_SOURCE_SHA: ${{ github.event.client_payload.source_sha }}
+          ARCHIVE_CURRENT_FALLBACK: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/prepare_native_coverage.sh
+          grep -qx 'available=true' "${GITHUB_OUTPUT}"
+          bash scripts/archive_coverage.sh
+          # The published homepage always uses the newest successful main
+          # measurement, even if dispatches arrive out of order.
+          rm -rf downloads site/libresign site/badges
 
       - name: Prefer the native Octocov report and PHPUnit artifacts from main
         id: native
@@ -51,6 +70,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: bash scripts/prepare_native_coverage.sh
+
+      - name: Archive verified main coverage in this publishing repository
+        if: steps.native.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: bash scripts/archive_coverage.sh
 
       - name: Download legacy snapshot only while native reporting is unavailable
         if: steps.native.outputs.available != 'true'
