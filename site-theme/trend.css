@@ -47,3 +47,9 @@ html[data-coverage-theme="dark"] .coverage-stale-detail {color:#e3b341;}
 html[data-coverage-theme="dark"] #trend-hover-tooltip:not([hidden]) {
   background: #161b22; color: #e6edf3; border-color: #8b949e;
 }
+
+#coverage-trend .coverage-legend {margin: .1rem 0 .5rem; color:#57606a;}
+#coverage-trend .coverage-about {font-size:.85rem;color:#57606a;}
+#coverage-trend .coverage-about p {margin:.5rem 0;}
+html[data-coverage-theme="dark"] #coverage-trend .coverage-legend,
+html[data-coverage-theme="dark"] #coverage-trend .coverage-about {color:#8b949e;}

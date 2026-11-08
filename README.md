@@ -94,7 +94,7 @@ published copies. Run the local checks with
 ## Coverage trend chart
 
 The homepage can display historical **total coverage percentage** with source
-selection, time-range filtering, build provenance and an accessible data table.
+automatic source transition, time-range filtering, build provenance and an accessible data table.
 Its legacy Coveralls series is rebuilt from the separately archived 2021–2026
 export, considering only the `main` branch and one observation per SHA.
 Periods without fresh observations are **not assigned fabricated coverage
@@ -106,8 +106,11 @@ scope changes (>30%) also use dashed segments rather than implying comparable
 intermediate measurements. The dotted bridge between levels is a visual
 transition, not an interpolated data point.
 
-New native Octocov data from actual successful `main` executions are stored
-as a **separate metric series**, not spliced into Coveralls' historical line.
+New native Octocov data from actual successful `main` executions are drawn
+automatically after the last eligible historical period. The visible UI does
+not require a source selector. A method change is **not connected** with a
+solid or vertical transition, because Coveralls and Octocov denominators differ.
+Each measurement links to its specific report provider and run.
 Archival metadata must contain the source SHA, run ID, UTC collection timestamp,
 and total/covered Octocov counters. The preview PR coverage is **not** treated
 as a production baseline.

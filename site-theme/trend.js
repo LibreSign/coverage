@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 (() => {
   'use strict';
+
   const host = document.getElementById('coverage-trend');
   if (!host) return;
+
   const chart = host.querySelector('svg');
-  const source = host.querySelector('#trend-source');
   const period = host.querySelector('#trend-period');
   const description = host.querySelector('#trend-status');
   const pointDetails = host.querySelector('#trend-point-details');
@@ -13,41 +14,67 @@
   const details = host.querySelector('#trend-table-details');
   const tbody = host.querySelector('#trend-data tbody');
   const ns = 'http://www.w3.org/2000/svg';
-
-  const node = (tag, attrs, text) => {
-    const n = document.createElementNS(ns, tag);
-    Object.entries(attrs || {}).forEach(([k, v]) => n.setAttribute(k, String(v)));
-    if (text !== undefined) n.textContent = text;
-    return n;
-  };
-  const percent = value => new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 1, maximumFractionDigits: 2,
-  }).format(value) + '%';
-  const dateLabel = value => new Date(value).toLocaleDateString('pt-BR', {timeZone: 'UTC'});
-  let series = null;
-  let selected = null;
-  let points = [];
-
   const day = 86400000;
   const staleThreshold = 90 * day;
+  const formatNumber = new Intl.NumberFormat('en-US');
+  const formatPercent = value => new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 1, maximumFractionDigits: 2,
+  }).format(value) + '%';
+  const formatDate = value => new Date(value).toLocaleDateString('en-US', {
+    timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+  });
+  const sources = {
+    legacy_coveralls: {
+      name: 'Coveralls',
+      report: id => 'Coveralls build #' + id,
+      url: id => 'https://coveralls.io/builds/' + id,
+    },
+    octocov_main: {
+      name: 'Octocov',
+      report: id => 'Octocov report · CI run #' + id,
+      url: id => 'https://github.com/LibreSign/libresign/actions/runs/' + id,
+    },
+  };
 
-  function sourceUrl(p) {
-    return selected === 'legacy_coveralls'
-      ? 'https://coveralls.io/builds/' + p.run
-      : 'https://github.com/LibreSign/libresign/actions/runs/' + p.run;
+  const node = (tag, attrs = {}, content) => {
+    const element = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, String(value)));
+    if (content !== undefined) element.textContent = content;
+    return element;
+  };
+
+  // Cut over at the first official main-branch Octocov reading. Preserve
+  // legacy history before that date, but never connect unlike denominators.
+  function combineHistory(data) {
+    const legacy = data.series.legacy_coveralls.points.map(p => ({...p, origin: 'legacy_coveralls'}));
+    const current = data.series.octocov_main.points.map(p => ({...p, origin: 'octocov_main'}));
+    const cutover = current.length ? Date.parse(current[0].date) : Infinity;
+    return [...legacy.filter(p => Date.parse(p.date) < cutover), ...current]
+      .sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
   }
 
-  function detailsFor(p, stale = false, inspectedDate = null) {
-    const amount = new Intl.NumberFormat('pt-BR');
-    const recorded = dateLabel(p.date);
-    const source = ' (' + amount.format(p.covered) + ' de ' +
-      amount.format(p.total) + ' itens analisados), commit ' + p.sha.slice(0, 9) + '.';
+  let history = [];
+  let points = [];
+
+  function reportInfo(point) {
+    const source = sources[point.origin];
+    return {
+      label: source.report(point.run),
+      href: source.url(point.run),
+    };
+  }
+
+  function showPoint(point, stale = false, inspectedDate = null) {
+    const report = reportInfo(point);
+    const measured = formatDate(point.date);
+    const count = formatNumber.format(point.covered) + ' / ' + formatNumber.format(point.total);
     pointDetails.textContent = stale
-      ? 'Sem nova medição' + (inspectedDate ? ' em ' + dateLabel(inspectedDate) : '') +
-        '. Último coverage conhecido: ' + percent(p.pct) +
-        ', medido em ' + recorded + source
-      : 'Medição real em ' + recorded + ': ' + percent(p.pct) + source;
-    pointDetails.href = sourceUrl(p);
+      ? 'No new measurement' + (inspectedDate ? ' on ' + formatDate(inspectedDate) : '') +
+        '. Last known: ' + formatPercent(point.pct) + ' (measured ' + measured +
+        ') · ' + report.label
+      : formatPercent(point.pct) + ' · ' + measured + ' · ' + count +
+        ' covered · ' + report.label;
+    pointDetails.href = report.href;
     pointDetails.hidden = false;
     pointDetails.classList.toggle('coverage-stale-detail', stale);
   }
@@ -69,54 +96,58 @@
 
   function populateTable() {
     tbody.replaceChildren();
-    points.forEach(p => {
+    for (const point of [...points].reverse()) {
       const row = document.createElement('tr');
-      const cells = [dateLabel(p.date), percent(p.pct), p.covered + '/' + p.total, p.sha.slice(0, 9)];
-      cells.forEach(v => {
+      for (const value of [formatDate(point.date), formatPercent(point.pct),
+        formatNumber.format(point.covered) + ' / ' + formatNumber.format(point.total),
+        point.sha.slice(0, 9)]) {
         const cell = document.createElement('td');
-        cell.textContent = v;
+        cell.textContent = value;
         row.append(cell);
-      });
+      }
       const linkCell = document.createElement('td');
       const link = document.createElement('a');
-      link.href = selected === 'legacy_coveralls'
-        ? 'https://coveralls.io/builds/' + p.run
-        : 'https://github.com/LibreSign/libresign/actions/runs/' + p.run;
-      link.textContent = 'Fonte';
+      const report = reportInfo(point);
+      link.href = report.href;
+      link.textContent = report.label;
       link.rel = 'noopener noreferrer';
       linkCell.append(link);
       row.append(linkCell);
       tbody.append(row);
-    });
+    }
+    if (!points.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 5;
+      cell.textContent = 'No measurements in this period.';
+      row.append(cell);
+      tbody.append(row);
+    }
   }
 
   function render() {
-    if (!series) return;
-    selected = source.value;
-    const entry = series[selected];
-    const raw = entry.points;
-    const endTime = Math.max(Date.now(), raw.length ? Date.parse(raw[raw.length - 1].date) : 0);
-    const startTime = period.value === 'year' ? endTime - 365 * day
-      : period.value === 'quarter' ? endTime - 90 * day
-      : raw.length ? Date.parse(raw[0].date) : endTime - 365 * day;
-    points = raw.filter(p => {
-      const t = Date.parse(p.date);
-      return t >= startTime && t <= endTime;
-    });
-    const previous = [...raw].reverse().find(p => Date.parse(p.date) < startTime);
-    const allVisible = previous ? [previous, ...points] : points;
-    const mostRecent = raw.length ? raw[raw.length - 1] : null;
-    const current = points.length ? points[points.length - 1] : null;
-    if (!mostRecent) {
-      description.textContent = 'Ainda não existem resultados oficiais da main para esta fonte.';
-    } else if (!points.length) {
-      description.textContent = 'Sem novas medições neste período. Último coverage conhecido: ' +
-        percent(mostRecent.pct) + ', registrado em ' + dateLabel(mostRecent.date) + '.';
-    } else {
-      description.textContent = entry.label + ': ' + points.length +
-        ' medições reais neste período; última em ' + dateLabel(current.date) +
-        ': ' + percent(current.pct) + ' (' + current.covered + '/' + current.total + ').';
+    if (!history.length) {
+      description.textContent = 'No measurements available yet.';
+      return;
     }
+    const latest = history[history.length - 1];
+    const end = Math.max(Date.now(), Date.parse(latest.date));
+    const start = period.value === 'year' ? end - 365 * day
+      : period.value === 'quarter' ? end - 90 * day
+      : Date.parse(history[0].date);
+
+    points = history.filter(p => {
+      const date = Date.parse(p.date);
+      return date >= start && date <= end;
+    });
+    const previous = [...history].reverse().find(p => Date.parse(p.date) < start);
+    const allVisible = previous ? [previous, ...points] : points;
+
+    description.textContent = points.length
+      ? 'Latest: ' + formatPercent(latest.pct) + ' · ' + formatDate(latest.date)
+      : 'No new measurements · Last known: ' +
+        formatPercent(latest.pct) + ' (' + formatDate(latest.date) + ')';
+
     pointDetails.hidden = true;
     hideTooltip();
     details.open = false;
@@ -127,128 +158,138 @@
     const viewWidth = compact ? 420 : 1000;
     chart.setAttribute('viewBox', compact ? '0 0 420 310' : '0 0 1000 340');
     chart.setAttribute('role', 'img');
-    chart.setAttribute('aria-label', entry.label + '. ' + description.textContent);
+    chart.setAttribute('aria-label', 'Total coverage over time. ' + description.textContent);
+
     const left = compact ? 48 : 64;
     const top = 20, width = compact ? 350 : 910, height = compact ? 225 : 270;
-    const X = t => left + (t - startTime) / (endTime - startTime || 1) * width;
-    const Y = p => top + (100 - p.pct) / 100 * height;
+    const X = time => left + (time - start) / (end - start || 1) * width;
+    const Y = point => top + (100 - point.pct) / 100 * height;
 
     for (let i = 0; i <= 4; i++) {
       const y = top + i * height / 4;
       chart.append(node('line', {x1: left, y1: y, x2: left + width,
         y2: y, class: 'coverage-grid'}));
-      chart.append(node('text', {x: 8, y: y + 5, class: 'coverage-axis'}, String(100 - i * 25) + '%'));
+      chart.append(node('text', {x: 8, y: y + 5, class: 'coverage-axis'}, (100 - i * 25) + '%'));
     }
 
     const tickStep = period.value === 'quarter' ? 30 * day
       : period.value === 'year' ? 90 * day : 365 * day;
-    for (let t = startTime; t <= endTime; t += tickStep) {
-      const tick = new Date(t);
+    for (let time = start; time <= end; time += tickStep) {
+      const date = new Date(time);
       const text = period.value === 'all'
-        ? String(tick.getUTCFullYear())
-        : tick.toLocaleDateString('pt-BR', {timeZone: 'UTC', month: 'short',
-          year: period.value === 'year' ? '2-digit' : undefined});
-      chart.append(node('text', {x: X(t), y: top + height + 28, class: 'coverage-axis'}, text));
+        ? String(date.getUTCFullYear())
+        : date.toLocaleDateString('en-US', {
+            timeZone: 'UTC', month: 'short',
+            year: period.value === 'year' ? '2-digit' : undefined,
+          });
+      chart.append(node('text', {x: X(time), y: top + height + 28, class: 'coverage-axis'}, text));
     }
 
-    const addGap = (p, from, to, withUpdate = false) => {
+    function addGap(point, from, to, update = null) {
       if (to <= from) return;
-      const y = Y(p);
-      const info = 'Sem medições. Último valor conhecido: ' + percent(p.pct) +
-        ', medido em ' + dateLabel(p.date) + '.';
-      chart.append(node('line', {x1: X(from), y1: y, x2: X(to), y2: y,
-        class: 'coverage-carry-line'}));
+      const y = Y(point);
+      const info = 'No new measurement. Last known: ' +
+        formatPercent(point.pct) + ' (measured ' + formatDate(point.date) +
+        ') · ' + reportInfo(point).label;
+      chart.append(node('line', {x1: X(from), y1: y, x2: X(to),
+        y2: y, class: 'coverage-carry-line'}));
+
       const hit = node('line', {x1: X(from), y1: y, x2: X(to), y2: y,
-        class: 'coverage-gap-hit', tabindex: 0,
-        'aria-label': info, role: 'button'});
+        class: 'coverage-gap-hit', tabindex: 0, 'aria-label': info});
       hit.append(node('title', {}, info));
-      const show = event => {
-        let examined = null;
+      const onHover = event => {
+        let inspected = null;
         if (event && typeof event.clientX === 'number') {
           const rect = chart.getBoundingClientRect();
           const x = (event.clientX - rect.left) / rect.width * viewWidth;
-          const t = startTime + (x - left) / width * (endTime - startTime);
-          examined = new Date(Math.min(to, Math.max(from, t))).toISOString();
+          const time = start + (x - left) / width * (end - start);
+          inspected = new Date(Math.min(to, Math.max(from, time))).toISOString();
         }
-        detailsFor(p, true, examined);
+        showPoint(point, true, inspected);
         showTooltip(event);
       };
-      hit.addEventListener('pointerenter', show);
-      hit.addEventListener('pointermove', show);
+      hit.addEventListener('pointerenter', onHover);
+      hit.addEventListener('pointermove', onHover);
       hit.addEventListener('pointerleave', hideTooltip);
-      hit.addEventListener('focus', () => detailsFor(p, true));
+      hit.addEventListener('focus', () => showPoint(point, true));
       chart.append(hit);
-      if (withUpdate) {
-        // A new, separately measured value only becomes known on its own date.
-        const updated = allVisible.find(q => Date.parse(q.date) === to);
-        if (updated) {
-          chart.append(node('line', {x1: X(to), y1: y, x2: X(to),
-            y2: Y(updated), class: 'coverage-update-line'}));
-        }
+
+      if (update) {
+        // A vertical step means "new result on this date", not an invented reading.
+        chart.append(node('line', {x1: X(to), y1: y, x2: X(to),
+          y2: Y(update), class: 'coverage-update-line'}));
       }
-    };
+    }
 
     for (let i = 1; i < allVisible.length; i++) {
-      const p = allVisible[i - 1], q = allVisible[i];
-      const a = Date.parse(p.date), b = Date.parse(q.date);
-      if (b < startTime || a > endTime) continue;
-      const from = Math.max(a, startTime), to = Math.min(b, endTime);
-      const scopeChanged = p.total > 0 && Math.abs(q.total - p.total) / p.total > .3;
-      if (b - a > staleThreshold || scopeChanged) {
-        addGap(p, from, to, true);
+      const point = allVisible[i - 1], next = allVisible[i];
+      const a = Date.parse(point.date), b = Date.parse(next.date);
+      if (b < start || a > end) continue;
+      const from = Math.max(a, start), to = Math.min(b, end);
+      const methodChanged = point.origin !== next.origin;
+      const scopeChanged = point.total > 0 &&
+        Math.abs(next.total - point.total) / point.total > .3;
+      if (methodChanged || b - a > staleThreshold || scopeChanged) {
+        // Never draw a vertical connector between Coveralls and Octocov.
+        addGap(point, from, to, methodChanged ? null : next);
       } else {
         const ratio = (from - a) / (b - a || 1);
-        const clippedY = Y(p) + ratio * (Y(q) - Y(p));
-        chart.append(node('line', {x1: X(from), y1: clippedY,
-          x2: X(to), y2: Y(q), class: 'coverage-trend-line'}));
+        const initialY = Y(point) + ratio * (Y(next) - Y(point));
+        chart.append(node('line', {x1: X(from), y1: initialY,
+          x2: X(to), y2: Y(next), class: 'coverage-trend-line'}));
       }
     }
 
-    // Keep the last *known* reading visible after the latest measurement,
-    // but never manufacture additional observation points.
-    if (mostRecent) {
-      const lastDate = Date.parse(mostRecent.date);
-      if (lastDate < endTime) {
-        addGap(mostRecent, Math.max(startTime, lastDate), endTime);
-      }
+    if (Date.parse(latest.date) < end) {
+      addGap(latest, Math.max(start, Date.parse(latest.date)), end);
     }
-    points.forEach(p => {
-      const dot = node('circle', {cx: X(Date.parse(p.date)), cy: Y(p), r: 3.3,
-        class: 'coverage-dot', tabindex: 0, role: 'button',
-        'aria-label': dateLabel(p.date) + ': ' + percent(p.pct) + ', medição real'});
-      dot.append(node('title', {}, dateLabel(p.date) + ' — ' + percent(p.pct)));
-      dot.addEventListener('pointerenter', event => { detailsFor(p); showTooltip(event); });
+
+    points.forEach(point => {
+      const measured = formatDate(point.date) + ' · ' + formatPercent(point.pct) +
+        ' · ' + reportInfo(point).label;
+      const dot = node('circle', {cx: X(Date.parse(point.date)), cy: Y(point),
+        r: 3.3, class: 'coverage-dot', tabindex: 0, 'aria-label': measured});
+      dot.append(node('title', {}, measured));
+      dot.addEventListener('pointerenter', event => {
+        showPoint(point);
+        showTooltip(event);
+      });
       dot.addEventListener('pointermove', showTooltip);
       dot.addEventListener('pointerleave', hideTooltip);
-      dot.addEventListener('click', () => detailsFor(p));
-      dot.addEventListener('focus', () => detailsFor(p));
+      dot.addEventListener('click', () => showPoint(point));
+      dot.addEventListener('focus', () => showPoint(point));
       chart.append(dot);
     });
-    if (mostRecent) detailsFor(mostRecent, !points.length);
+    showPoint(latest, !points.length);
   }
 
-  source.addEventListener('change',render);
-  period.addEventListener('change',render);
-  let lastCompact = window.innerWidth < 660;
+  period.addEventListener('change', render);
+  let wasCompact = window.innerWidth < 660;
   window.addEventListener('resize', () => {
     const compact = window.innerWidth < 660;
-    if (lastCompact !== compact) {
-      lastCompact = compact;
+    if (wasCompact !== compact) {
+      wasCompact = compact;
       render();
     }
   });
-  details.addEventListener('toggle', () => {if (details.open) populateTable();});
-  fetch('assets/coverage-history.json', {credentials:'omit'})
-    .then(response => {if(!response.ok)throw new Error('Dados não disponíveis');return response.json();})
+  details.addEventListener('toggle', () => {
+    if (details.open) populateTable();
+  });
+
+  fetch('assets/coverage-history.json', {credentials: 'omit'})
+    .then(response => {
+      if (!response.ok) throw new Error('History data unavailable');
+      return response.json();
+    })
     .then(data => {
-      if (data.schema !== 1 || data.repository !== 'LibreSign/libresign') throw new Error('Formato inválido');
-      series = data.series;
-      if (!series.octocov_main.points.length) {
-        source.querySelector('[value="octocov_main"]').disabled=true;
-      } else {
-        source.value='octocov_main';
+      if (data.schema !== 1 || data.repository !== 'LibreSign/libresign' ||
+          !data.series?.legacy_coveralls?.points || !data.series?.octocov_main?.points) {
+        throw new Error('Invalid history format');
       }
+      history = combineHistory(data);
       render();
     })
-    .catch(() => {description.textContent='Não foi possível carregar a série histórica.';});
+    .catch(() => {
+      description.textContent = 'Coverage history is temporarily unavailable.';
+    });
 })();

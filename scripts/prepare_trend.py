@@ -1,66 +1,67 @@
 # SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Insert the interactive, accessible trend into generated site HTML."""
-from pathlib import Path
+"""Insert the compact coverage history chart into the generated homepage."""
+
 import argparse
 import shutil
+from pathlib import Path
 
 MARKER = '<!-- LibreSign trend chart -->'
 WIDGET = '''<section id="coverage-trend" aria-labelledby="trend-title">
-  <h2 id="trend-title">Evolução do coverage total</h2>
+  <h2 id="trend-title">Total coverage over time</h2>
   <div class="coverage-controls">
-    <label>Fonte
-      <select id="trend-source">
-        <option value="legacy_coveralls">Coveralls — histórico</option>
-        <option value="octocov_main">Octocov — main</option>
-      </select>
-    </label>
-    <label>Período
+    <label>Period
       <select id="trend-period">
-        <option value="all">Todo o histórico</option>
-        <option value="year">Últimos 12 meses de dados</option>
-        <option value="quarter">Últimos 90 dias de dados</option>
+        <option value="all">All time</option>
+        <option value="year">Last 12 months</option>
+        <option value="quarter">Last 90 days</option>
       </select>
     </label>
   </div>
-  <p id="trend-status" aria-live="polite">Carregando medições históricas…</p>
-  <svg class="coverage-chart" aria-label="Evolução do coverage total"></svg>
+  <p id="trend-status" aria-live="polite">Loading history…</p>
+  <svg class="coverage-chart" aria-label="Total coverage over time"></svg>
   <div id="trend-hover-tooltip" role="tooltip" hidden></div>
   <a id="trend-point-details" href="#" hidden rel="noopener noreferrer"></a>
-  <p><small>Coveralls e Octocov usam métricas distintas. As séries não são conectadas.
-  <span class="coverage-legend">Linha contínua: entre medições próximas. Linha tracejada: último valor conhecido, não nova medição.</span>
-  Nos intervalos sem dados, passe o mouse sobre o traço para consultar o percentual e a data original.
-  Mudanças de escopo acima de 30% também são indicadas por trecho tracejado.
-  Alterações no percentual não representam necessariamente mudanças na qualidade do código.</small></p>
-  <details id="trend-table-details"><summary>Consultar todas as medições deste período</summary>
-    <table id="trend-data"><thead><tr><th>Data</th><th>Coverage</th><th>Cobertura</th><th>Commit</th><th>Origem</th></tr></thead><tbody></tbody></table>
+  <p class="coverage-legend"><small>Dots: measurements · Dashed: last known</small></p>
+  <details id="trend-table-details"><summary>View measurements</summary>
+    <table id="trend-data"><thead><tr><th>Date</th><th>Coverage</th><th>Covered / Total</th>
+      <th>Commit</th><th>Report</th></tr></thead><tbody></tbody></table>
+  </details>
+  <details class="coverage-about"><summary>About the data</summary>
+    <p>Historical measurements come from Coveralls; newer measurements come from Octocov.
+       Their calculations differ, so we do not connect the two methods.</p>
+    <a href="https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07">
+      Historical data archive</a>
   </details>
 </section>'''
 
 
 def prepare(public: Path):
-    root=public / "index.html"
-    data=public / "assets/coverage-history.json"
+    root = public / "index.html"
+    data = public / "assets/coverage-history.json"
     if not root.is_file() or not data.is_file():
         raise FileNotFoundError("Generated index or history data not found")
-    destination=public / "assets/coverage-theme"
+    destination = public / "assets" / "coverage-theme"
     destination.mkdir(parents=True, exist_ok=True)
-    source=Path(__file__).resolve().parents[1] / "site-theme"
-    for name in ("trend.js","trend.css"):
+    source = Path(__file__).resolve().parents[1] / "site-theme"
+    for name in ("trend.js", "trend.css"):
         shutil.copyfile(source / name, destination / name)
-    html=root.read_text()
-    if MARKER in html:
+
+    content = root.read_text(encoding="utf-8")
+    if MARKER in content:
         return
-    target='<h2 id="current-repositories">'
-    if target not in html:
-        raise ValueError("Generated Octocov index lacks the repository section")
-    markup = (MARKER + '\n' + WIDGET + '\n'
-              + '<link rel="stylesheet" href="assets/coverage-theme/trend.css">\n'
-              + '<script src="assets/coverage-theme/trend.js" defer></script>\n')
-    root.write_text(html.replace(target,markup+target,1))
+    target = '<!-- coverage-trend-slot -->'
+    if target not in content:
+        raise ValueError("Generated site lacks the coverage chart insertion slot")
+    markup = (
+        MARKER + '\n' + WIDGET + '\n'
+        + '<link rel="stylesheet" href="assets/coverage-theme/trend.css">\n'
+        + '<script src="assets/coverage-theme/trend.js" defer></script>\n'
+    )
+    root.write_text(content.replace(target, markup, 1), encoding="utf-8")
 
 
-if __name__=="__main__":
-    p=argparse.ArgumentParser()
-    p.add_argument("--public",type=Path,required=True)
-    prepare(p.parse_args().public)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--public", type=Path, required=True)
+    prepare(parser.parse_args().public)

@@ -92,7 +92,7 @@ def build(legacy_archive: Path, native_metadata_dir: Path | None = None) -> dict
         "repository": REPOSITORY,
         "series": {
             "legacy_coveralls": {
-                "label": "Coveralls (histórico)",
+                "label": "Coveralls (historical)",
                 "metric": "covered lines / relevant lines",
                 "points": legacy_series(raw),
             },
