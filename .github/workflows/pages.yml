@@ -99,24 +99,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Jekyll excludes underscore-prefixed directories, but PHPUnit uses
-          # _css, _js, and _icons in its self-contained HTML report.
-          # Restore the original static report after Jekyll renders the index.
-          cp -a site/libresign/. _site/libresign/
+          # Jekyll skips underscore-prefixed asset directories and its Docker
+          # action creates a build tree that the runner cannot write into.
+          # Stage a writable copy, preserving the rendered root index.
+          mkdir -p public
+          cp -R --no-preserve=mode _site/. public/
+          for asset_dir in _css _js _icons; do
+            if [[ ! -d "site/libresign/$asset_dir" ]]; then
+              echo "::error::Missing PHPUnit asset directory: $asset_dir"
+              exit 1
+            fi
+            cp -R "site/libresign/$asset_dir" public/libresign/
+          done
           for asset in _css/bootstrap.min.css _css/style.css _js/jquery.min.js _icons/file-directory.svg; do
-            if [[ ! -s "_site/libresign/$asset" ]]; then
+            if [[ ! -s "public/libresign/$asset" ]]; then
               echo "::error::Missing PHPUnit asset: $asset"
               exit 1
             fi
           done
-          test -s _site/index.html
-          test -s _site/libresign/index.html
-          test -s _site/libresign/dashboard.html
+          test -s public/index.html
+          test -s public/libresign/index.html
+          test -s public/libresign/dashboard.html
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: ./_site
+          path: ./public
 
       - name: Deploy GitHub Pages
         id: deploy
