@@ -5,160 +5,64 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # LibreSign Coverage
 
-The source code for **this publishing website** is in this repository:
-[the GitHub Actions publisher](.github/workflows/pages.yml),
-[Octocov configuration](.octocov.yml), and the
-[theme/navigation layer](site-theme/). The site at
-[coverage.libresign.coop](https://coverage.libresign.coop/)
-contains **generated HTML**, not a checkout of this repository. PHP coverage
-refers to the [LibreSign application source](https://github.com/LibreSign/libresign).
+**Better tests. More reliable document-signing workflows.**
 
-**License:** GNU Affero General Public License v3 or later (AGPL-3.0-or-later),
-see [LICENSE](LICENSE). Octocov and PHPUnit are external tools and retain their
-own upstream licenses.
+[Explore coverage](https://coverage.libresign.coop/) ·
+[Contribute to LibreSign](https://github.com/LibreSign/libresign) ·
+[Find a good first issue](https://github.com/LibreSign/libresign/labels/good%20first%20issue)
 
-Static code coverage reports for repositories owned by [LibreSign](https://github.com/LibreSign).
+[LibreSign](https://github.com/LibreSign/libresign) is an open-source document-signing application built for Nextcloud. Its signing workflows support organizations that need control, traceability, and dependable processes.
 
-The canonical public site is **https://coverage.libresign.coop/**. The project uses upstream [octocov](https://github.com/k1LoW/octocov) central mode to render the repository index and badges, and the existing PHPUnit HTML report to display line-by-line coverage.
+**LibreSign Coverage** makes test coverage visible so developers can find gaps, investigate risks, and strengthen the application. The goal is **not to maximize a percentage**. It is to build useful tests that catch regressions, clarify expected behavior, and make changes safer to review.
 
-## Data flow
+## Coverage is a starting point, not a quality score
 
-1. `LibreSign/libresign` runs PHPUnit **once**, generating Clover and HTML.
-2. The source CI uploads the PHPUnit reports as GitHub Actions artifacts and
-   publishes a native Octocov artifact (`artifact://LibreSign/libresign`).
-3. This repository reads the public native artifact **directly** using the
-   `GITHUB_TOKEN` of the Pages workflow, verified against the upstream
-   implementation. It downloads the HTML and Clover from the **same successful
-   main run** and checks that the native Octocov JSON records the same SHA.
-4. Octocov Central Mode generates repository badges and metrics, and GitHub
-   Pages publishes the unchanged PHPUnit HTML details and the shared theme.
-5. After the complete main PHPUnit workflow succeeds, a small
-   `workflow_run` notifier in LibreSign requests a central refresh using a
-   GitHub App token scoped only to `LibreSign/coverage`.
-6. **This repository** validates the source run, archives SHA/run/attempt-addressed
-   compressed Octocov and Clover measurements in its own GitHub Releases, and
-   republishes Pages. No archiving or Python processing runs in the PHP project.
+A line executed by a test is not necessarily a line **correctly tested**. Even high coverage can miss broken business rules, weak assertions, permission mistakes, and failure paths.
 
-The GitHub Actions workflow selects `main` reports only; it never presents
-coverage from a pull request as a production baseline. While the source
-[LibreSign PR #9387](https://github.com/LibreSign/libresign/pull/9387) awaits
-its required maintainer review, a clearly labeled homologation preview is
-loaded from `coverage-latest`. This **fallback is not the permanent transport
-or the source of truth**: when a successful source main run produces native
-artifacts, the site automatically switches to them.
+Good contributions prioritize:
 
-The archive is not an Octocov history dashboard. Native Octocov Central Mode
-displays the latest report for each repository, not a historical trend of every
-commit. The distinct [Coveralls historical export](https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07)
-contains 3,735 historic build **metadata** records and a single per-file
-summary export, not line-by-line historic reports. Historic reports are never
-fabricated.
+- **Observable behavior:** verify what users and integrations should experience, not incidental implementation details.
+- **Meaningful assertions:** make the test fail when the expected behavior is broken.
+- **Risk and edge cases:** cover authorization, signing order, invalid input, failures, and regressions where relevant.
+- **Maintainability:** keep tests focused, deterministic, readable, and appropriate to their test level.
+- **Evidence:** explain the defect or behavior being protected, not just the change in coverage percentage.
 
-## Preservation and retention
+Use coverage to decide **where to investigate**, then use engineering judgment to decide **what deserves a test**.
 
-GitHub Actions artifacts for public repositories expire after at most 90 days,
-so they are **operational data**, not the permanent archive. Source CI preserves
-compressed Clover/Octocov JSON in a SHA-addressed monthly release separately.
-The latest full HTML report is published in Pages; a synthetic history of full
-HTML pages is intentionally not stored.
+## Help improve LibreSign
 
-The repository's `github://` Octocov datastore is deliberately not used:
-Octocov's native Git commits do not satisfy the LibreSign signed-commit and
-DCO rules. The archive remains off the main Git branch, and Octocov
-`central.push` stays disabled.
+The PHP application and its tests live in **[LibreSign/libresign](https://github.com/LibreSign/libresign)**, not in this dashboard repository.
 
-## Repository organization
+1. **Find a meaningful task.** Explore [open issues](https://github.com/LibreSign/libresign/issues), [good first issues](https://github.com/LibreSign/libresign/labels/good%20first%20issue), or a behavior that lacks regression tests.
+2. **Investigate the evidence.** Use the [coverage dashboard](https://coverage.libresign.coop/) to explore directories, files, and uncovered lines. Low coverage is a clue, not proof of a defect.
+3. **Write a focused test or fix.** Follow the [LibreSign contributing guide](https://github.com/LibreSign/libresign/blob/main/CONTRIBUTING.md) and [developer testing manual](https://docs.libresign.coop/developer_manual/getting-started/tests.html).
+4. **Open a pull request in LibreSign.** Explain the behavior, risk, tests run, and why the assertions matter. A higher coverage number alone is not a sufficient rationale.
 
-The root Pages index lists LibreSign repositories with published data. Each repository's detailed HTML resides under its short name, e.g. `/libresign/`. Projects in other GitHub organizations do not belong in this repository.
+You can contribute through bug reproduction, test cases, documentation, review, or code. New to the project? Start with the [LibreSign development guide](https://docs.libresign.coop/developer_manual/).
 
-The source PHPUnit matrix is `LibreSign/libresign/.github/workflows/phpunit-sqlite.yml`. It calls the reusable collector [`.github/workflows/source-octocov.yml`](.github/workflows/source-octocov.yml) after PHPUnit completes; the collector generates an Octocov PR comparison and the native main-branch artifact in the **caller's** workflow run. `LibreSign/libresign/.github/workflows/coverage-publish.yml` subsequently dispatches a completed successful main run to the publisher. Add more LibreSign repositories by publishing native Octocov artifacts and suitable HTML reports; do not duplicate the coverage parser or create a standalone coverage service.
+## What the dashboard shows
 
-## Maintenance and security
+- **Latest report:** instrumented lines covered and uncovered, file counts, and links to the source commit and CI run. A report labeled **Preview** is *not* an official `main` baseline.
+- **Explore coverage:** search files, filter directories, and find candidates for investigation. Color bands help scan results; they are **not** quality gates.
+- **Historical trend:** inspect recorded measurements and open their underlying reports. Older Coveralls data and newer Octocov data are identified separately because their methods may differ.
+- **Detailed reports:** follow links to the PHPUnit source-line coverage produced by the LibreSign project.
 
-- The Pages job uses its normal `GITHUB_TOKEN` to read **public** source Actions artifacts; no additional GitHub App Actions permissions are required.
-- The LibreSign source notifier uses a GitHub App token scoped to
-  `LibreSign/coverage` solely to request `repository_dispatch` after a
-  completed, successful main run with a native Octocov artifact.
-- The publisher uses **its own** `GITHUB_TOKEN` with `contents:write` to archive
-  coverage Releases. It verifies the Octocov repository, ref, SHA, and
-  measurement before writing. The dispatch payload is not treated as
-  authoritative coverage data.
-- Keep `central.push` disabled; all source commits require DCO and signed commits.
-- Coveralls is the **historical source only**. Its 2021-2026 measurements remain archived and labeled separately; new reporting uses Octocov after LibreSign/libresign#9387 is merged.
-- The Cloudflare DNS record `coverage.libresign.coop` is a CNAME to
-  `libresign.github.io`. The GitHub Pages repository's
-  [Settings > Pages](https://github.com/LibreSign/coverage/settings/pages)
-  must separately register `coverage.libresign.coop` as **Custom domain**;
-  HTTPS can be enforced once GitHub provisions its certificate.
-  The Jekyll build explicitly sets that canonical URL with empty `baseurl`,
-  because the site is served from `/`, not `/coverage/`.
-  With a GitHub Actions Pages deployment, no `CNAME` file is needed.
+For interpretation, limitations, and historical provenance, see [Understanding coverage data](docs/understanding-coverage.md).
 
-## Theme and source navigation
+## Improve this website
 
-The static site has an accessible light/dark theme toggle, initially following
-the operating system setting and remembering an explicit preference for
-subsequent pages. The source links lead to this publisher and the LibreSign
-application; PHP source-line pages also link to the matching source file at
-the **exact commit** recorded in the coverage snapshot.
+This repository publishes the dashboard at **[coverage.libresign.coop](https://coverage.libresign.coop/)**. Contributions here should improve the **accuracy, accessibility, usability, and reliability of coverage reporting**—not change LibreSign's PHP tests.
 
-This is a small navigation layer over the original Octocov and PHPUnit
-outputs. The upstream coverage data and rendered line-level reports remain
-unchanged in their source artifacts; the theme is inserted only into the
-published copies. Run the local checks with
-`python3 -m unittest discover -s tests -v`.
+[Report a dashboard issue](https://github.com/LibreSign/coverage/issues) or propose a change in this repository. Run the existing checks before submitting:
 
-## Coverage trend chart
+```bash
+python3 -m unittest discover -s tests -v
+```
 
-The homepage can display historical **total coverage percentage** with source
-automatic source transition, time-range filtering, build provenance and an accessible data table.
-Its legacy Coveralls series is rebuilt from the separately archived 2021–2026
-export, considering only the `main` branch and one observation per SHA.
-Periods without fresh observations are **not assigned fabricated coverage
-values**. The chart shows the last known value as a horizontal **dashed** line,
-with hover text that explicitly identifies the date and commit of the previous
-measurement. This distinguishes "last observed" from "measured on this date."
-A new measurement changes the value only on its actual timestamp. Significant
-scope changes (>30%) also use dashed segments rather than implying comparable
-intermediate measurements. The dotted bridge between levels is a visual
-transition, not an interpolated data point.
+For publishing workflows, data integrity, and the repository layout, see the [Maintainer guide](docs/maintainers.md).
 
-New native Octocov data from actual successful `main` executions are drawn
-automatically after the last eligible historical period. The visible UI does
-not require a source selector. A method change is **not connected** with a
-solid or vertical transition, because Coveralls and Octocov denominators differ.
-Each measurement links to its specific report provider and run.
-Archival metadata must contain the source SHA, run ID, UTC collection timestamp,
-and total/covered Octocov counters. The preview PR coverage is **not** treated
-as a production baseline.
+## For organizations using LibreSign
 
-The chart is a presentation layer, not a coverage parser. Upstream Octocov and
-PHPUnit remain responsible for computing coverage; no additional PHPUnit run
-or Git commit of generated HTML is required. The chart's static JSON is
-regenerated at Pages build time from durable release data.
+Quality-focused tests help teams detect regressions in workflows they rely on. Organizations can contribute reproducible problems, sponsor test improvements, and fund ongoing development.
 
-## Latest-report overview and coverage explorer
-
-The root dashboard displays a latest-report overview, **explicitly labeled
-preview** until a verified main-branch report is published. It includes covered
-and uncovered *instrumented lines*, file counts and links to the exact source
-commit and CI run. These values are read from the same verified native
-Octocov report and are **not** calculated from historical Coveralls records.
-
-The **Explore coverage** section aggregates the existing Octocov file counters
-by directory, ranks directories and files by **uncovered lines**, and supports
-searching, filtering by directory and sorting files. Source-line links resolve
-to the previously generated PHPUnit HTML and are checked against the static
-output; where the HTML file is absent, the link uses the pinned GitHub source
-commit instead. It never re-runs PHPUnit, and no runner-internal absolute path
-is published.
-
-The original upstream Octocov index is consumed without modifying Octocov's
-templates. Only columns whose values are unavailable for **all** repositories
-are removed from the public presentation. The generated badge images remain
-visible, while the redundant, broken copy-details widget is omitted from the
-published homepage. Native badges and reports remain produced as before, and
-future populated Octocov columns reappear automatically.
-
-Both the overview JSON and its JavaScript/CSS are generated at Pages build
-time, including content-hashed asset URLs to avoid stale scripts.
+[Support LibreSign](https://github.com/sponsors/LibreSign) · [Project documentation](https://docs.libresign.coop/)

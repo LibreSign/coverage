@@ -50,7 +50,12 @@ class CustomDomainTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text()
         self.assertIn(DOMAIN, readme)
         self.assertNotIn("https://libresign.github.io/coverage/", readme)
-        self.assertIn("Custom domain", readme)
+
+    def test_custom_domain_instructions_live_in_maintainer_guide(self):
+        guide = (ROOT / "docs/maintainers.md").read_text()
+        self.assertIn(DOMAIN, guide)
+        self.assertIn("GitHub Pages settings", guide)
+        self.assertIn("empty `baseurl`", guide)
 
 
 if __name__ == "__main__":
