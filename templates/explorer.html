@@ -1,0 +1,44 @@
+<section id="coverage-explorer" aria-labelledby="coverage-explorer-title">
+  <div class="coverage-explorer-heading">
+    <div><h2 id="coverage-explorer-title">Explore coverage</h2>
+      <p class="coverage-explorer-subtitle">Find the files with the most uncovered lines.</p>
+    </div>
+    <a href="libresign/">Browse all source lines</a>
+  </div>
+  <p class="coverage-level-legend" aria-label="Coverage color legend">
+    <span class="coverage-level-key is-low">Low (below 50%)</span>
+    <span class="coverage-level-key is-medium">Moderate (50–79%)</span>
+    <span class="coverage-level-key is-high">High (80% or more)</span>
+  </p>
+  <div class="coverage-explorer-columns">
+    <section class="coverage-panel" aria-labelledby="coverage-directories-title">
+      <div class="coverage-panel-heading">
+        <h3 id="coverage-directories-title">Directories</h3>
+        <button id="coverage-clear-directory" type="button" hidden>Clear filter</button>
+      </div>
+      <div id="coverage-directory-list" aria-live="polite">Loading directories…</div>
+      <button id="coverage-more-directories" class="coverage-secondary-button" type="button" hidden>Show all directories</button>
+    </section>
+    <section class="coverage-panel" aria-labelledby="coverage-files-title">
+      <div class="coverage-panel-heading"><h3 id="coverage-files-title">Files to review</h3>
+        <span id="coverage-file-count" aria-live="polite"></span>
+      </div>
+      <div class="coverage-file-controls">
+        <input id="coverage-file-search" type="search" placeholder="Search files" aria-label="Search coverage files">
+        <select id="coverage-file-sort" aria-label="Sort coverage files">
+          <option value="uncovered">Most uncovered</option>
+          <option value="percent">Lowest coverage</option>
+          <option value="name">File name</option>
+        </select>
+      </div>
+      <div class="coverage-table-scroll">
+        <table class="coverage-file-table"><thead><tr>
+          <th scope="col">File</th><th scope="col">Coverage</th>
+          <th scope="col">Uncovered</th>
+        </tr></thead><tbody id="coverage-file-list"></tbody></table>
+      </div>
+      <button id="coverage-more-files" class="coverage-secondary-button" type="button" hidden>Show more files</button>
+      <noscript>Enable JavaScript to search the coverage files. <a href="libresign/">View the complete PHPUnit report</a>.</noscript>
+    </section>
+  </div>
+</section>

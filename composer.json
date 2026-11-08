@@ -1,0 +1,31 @@
+{
+  "name": "libresign/coverage",
+  "description": "Verified coverage publisher for LibreSign",
+  "type": "project",
+  "require": {
+    "php": "^8.3",
+    "ext-json": "*",
+    "ext-zlib": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "LibreSign\\Coverage\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "LibreSign\\Coverage\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --colors=never",
+    "lint": "@php -r \"foreach (array_merge(glob('src/*.php'), glob('scripts/*.php'), glob('tests/*.php'), glob('templates/*.php')) as \\$f) { passthru('php -l '.escapeshellarg(\\$f), \\$status); if (\\$status) exit(\\$status); }\""
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "license": "AGPL-3.0-or-later"
+}
