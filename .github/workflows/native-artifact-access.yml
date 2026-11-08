@@ -33,6 +33,9 @@ jobs:
           echo "Public cross-repo artifact download HTTP status: ${code}"
           [[ "${code}" == "200" ]] || exit 1
           unzip -t /tmp/octocov-public-report.zip | tail -n 2
+      - name: Prepare local badge directory
+        run: mkdir -p test-output/badges
+
       - name: Run upstream Octocov central mode directly on public artifacts
         uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
         with:
