@@ -95,6 +95,24 @@ jobs:
           source: ./site
           destination: ./_site
 
+      - name: Preserve PHPUnit static assets excluded by Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Jekyll excludes underscore-prefixed directories, but PHPUnit uses
+          # _css, _js, and _icons in its self-contained HTML report.
+          # Restore the original static report after Jekyll renders the index.
+          cp -a site/libresign/. _site/libresign/
+          for asset in _css/bootstrap.min.css _css/style.css _js/jquery.min.js _icons/file-directory.svg; do
+            if [[ ! -s "_site/libresign/$asset" ]]; then
+              echo "::error::Missing PHPUnit asset: $asset"
+              exit 1
+            fi
+          done
+          test -s _site/index.html
+          test -s _site/libresign/index.html
+          test -s _site/libresign/dashboard.html
+
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
