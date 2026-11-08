@@ -41,6 +41,7 @@ jobs:
           python3 -m unittest discover -s tests -v
           node --check site-theme/theme.js
           node --check site-theme/trend.js
+          node --check site-theme/overview.js
           bash -n scripts/build_coverage_history.sh
           bash -n scripts/prepare_native_coverage.sh
 
@@ -100,14 +101,17 @@ jobs:
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
             printf '%s\n' '[Browse coverage by file](./libresign/) · [Application code](https://github.com/LibreSign/libresign) · [Website code](https://github.com/LibreSign/coverage)' ''
-            if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
-              printf '%s\n' '**Preview:** Report from PR #9387; the main branch has not published a report yet.' ''
-            fi
-            printf 'Report: [CI run %s](https://github.com/LibreSign/libresign/actions/runs/%s) · commit `%.9s`.\n\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
             printf '%s\n' '<!-- coverage-trend-slot -->' ''
             cat site/octocov-index.md
           } > site/index.md
           rm site/octocov-index.md
+
+      - name: Summarize verified Octocov coverage without rerunning tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build_coverage_summary.py
+          test -s site/assets/coverage-summary.json
 
       - name: Compile verified coverage trend from archived measurements
         env:
@@ -156,6 +160,10 @@ jobs:
           test -s public/assets/coverage-theme/theme.js
           python3 scripts/prepare_trend.py --public public
           test -s public/assets/coverage-theme/trend.js
+          python3 scripts/prepare_dashboard.py --public public
+          test -s public/assets/coverage-theme/overview.js
+          test -s public/assets/coverage-theme/overview.css
+          test -s public/assets/coverage-summary.json
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
