@@ -31,6 +31,8 @@ class TrendInjectionTests(unittest.TestCase):
         self.assertTrue((self.public / "assets/coverage-theme/trend.js").is_file())
         self.assertTrue((self.public / "assets/coverage-theme/trend.css").is_file())
         self.assertIn('assets/coverage-theme/trend.js', result)
+        self.assertRegex(result, r'assets/coverage-theme/trend\.js\?v=[0-9a-f]{12}')
+        self.assertRegex(result, r'assets/coverage-theme/trend\.css\?v=[0-9a-f]{12}')
 
     def test_chart_uses_english_and_no_source_selector(self):
         prepare(self.public)

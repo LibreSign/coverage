@@ -3,6 +3,7 @@
 """Insert the compact coverage history chart into the generated homepage."""
 
 import argparse
+import hashlib
 import shutil
 from pathlib import Path
 
@@ -47,6 +48,12 @@ def prepare(public: Path):
     for name in ("trend.js", "trend.css"):
         shutil.copyfile(source / name, destination / name)
 
+    # GitHub Pages caches static resources. Content-derived versions prevent
+    # a new HTML template from executing a stale script left in browser cache.
+    versions = {
+        name: hashlib.sha256((source / name).read_bytes()).hexdigest()[:12]
+        for name in ("trend.css", "trend.js")
+    }
     content = root.read_text(encoding="utf-8")
     if MARKER in content:
         return
@@ -55,8 +62,8 @@ def prepare(public: Path):
         raise ValueError("Generated site lacks the coverage chart insertion slot")
     markup = (
         MARKER + '\n' + WIDGET + '\n'
-        + '<link rel="stylesheet" href="assets/coverage-theme/trend.css">\n'
-        + '<script src="assets/coverage-theme/trend.js" defer></script>\n'
+        + f'<link rel="stylesheet" href="assets/coverage-theme/trend.css?v={versions["trend.css"]}">\n'
+        + f'<script src="assets/coverage-theme/trend.js?v={versions["trend.js"]}" defer></script>\n'
     )
     root.write_text(content.replace(target, markup, 1), encoding="utf-8")
 
