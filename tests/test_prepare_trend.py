@@ -17,7 +17,7 @@ class TrendInjectionTests(unittest.TestCase):
         self.html = self.public / "index.html"
         self.data = self.public / "assets/coverage-history.json"
         self.data.parent.mkdir()
-        self.html.write_text('<html><body><h2 id="current-repositories">Repos</h2></body></html>')
+        self.html.write_text('<html><body><!-- coverage-trend-slot --><h2 id="repositories">Repositories</h2></body></html>')
         self.data.write_text('{"schema":1,"repository":"LibreSign/libresign"}')
 
     def test_inserts_graph_without_modifying_octocov(self):
@@ -26,11 +26,23 @@ class TrendInjectionTests(unittest.TestCase):
         result = self.html.read_text()
         self.assertIn(MARKER, result)
         self.assertIn('id="coverage-trend"', result)
-        self.assertIn('id="current-repositories"', result)
-        self.assertEqual(result.count('id="current-repositories"'), before.count('id="current-repositories"'))
+        self.assertIn('id="repositories"', result)
+        self.assertEqual(result.count('id="repositories"'), before.count('id="repositories"'))
         self.assertTrue((self.public / "assets/coverage-theme/trend.js").is_file())
         self.assertTrue((self.public / "assets/coverage-theme/trend.css").is_file())
         self.assertIn('assets/coverage-theme/trend.js', result)
+
+    def test_chart_uses_english_and_no_source_selector(self):
+        prepare(self.public)
+        markup = self.html.read_text()
+        self.assertIn('Total coverage over time', markup)
+        self.assertIn('id="trend-period"', markup)
+        self.assertNotIn('id="trend-source"', markup)
+        self.assertIn('>Report</th>', markup)
+        self.assertIn('About the data', markup)
+        for phrase in ('Evolução', 'Fonte', 'Período', 'medição',
+                       'Origem', 'histórico', 'Octocov — main'):
+            self.assertNotIn(phrase, markup)
 
     def test_rerunning_does_not_duplicate_chart(self):
         prepare(self.public)

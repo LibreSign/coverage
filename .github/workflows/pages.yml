@@ -99,17 +99,12 @@ jobs:
           {
             printf '%s\n' '---' 'title: LibreSign Coverage' '---'
             printf '%s\n' '# LibreSign code coverage' ''
-            printf '%s\n' '[Coverage website source](https://github.com/LibreSign/coverage) · [LibreSign application source](https://github.com/LibreSign/libresign) · [Publishing workflow](https://github.com/LibreSign/coverage/blob/main/.github/workflows/pages.yml)' ''
+            printf '%s\n' '[Browse coverage by file](./libresign/) · [Application code](https://github.com/LibreSign/libresign) · [Website code](https://github.com/LibreSign/coverage)' ''
             if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
-              printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not the main-branch baseline. Native artifacts will replace this automatically after the source PR is merged.' ''
-            else
-              printf '%s\n' 'Source: upstream Octocov native GitHub Actions artifacts from the LibreSign main branch.' ''
+              printf '%s\n' '**Preview:** Report from PR #9387; the main branch has not published a report yet.' ''
             fi
-            printf 'Source: [GitHub Actions run %s](https://github.com/LibreSign/libresign/actions/runs/%s), commit %s.\n\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
-            printf '%s\n' '[View PHPUnit coverage by source line](./libresign/)'
-            printf '%s\n' '[Download historical Coveralls data (2021-2026)](https://github.com/LibreSign/coverage/releases/tag/coveralls-archive-2026-11-07)' ''
-            printf '%s\n' 'Metric note: Octocov measures instrumented statements in Clover; legacy Coveralls percentages use a different denominator and must not be compared directly.' ''
-            printf '%s\n' '## Current repositories' ''
+            printf 'Report: [CI run %s](https://github.com/LibreSign/libresign/actions/runs/%s) · commit `%.9s`.\n\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
+            printf '%s\n' '<!-- coverage-trend-slot -->' ''
             cat site/octocov-index.md
           } > site/index.md
           rm site/octocov-index.md
