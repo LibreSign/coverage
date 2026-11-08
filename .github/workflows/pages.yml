@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: read # public, cross-repo Octocov artifacts use this repository token
   pages: write
   id-token: write
 
@@ -39,8 +40,17 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s tests -v
           node --check site-theme/theme.js
+          bash -n scripts/prepare_native_coverage.sh
 
-      - name: Download latest published LibreSign coverage snapshot
+      - name: Prefer the native Octocov report and PHPUnit artifacts from main
+        id: native
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: bash scripts/prepare_native_coverage.sh
+
+      - name: Download legacy snapshot only while native reporting is unavailable
+        if: steps.native.outputs.available != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -51,7 +61,8 @@ jobs:
           (cd downloads && sha256sum -c checksums.sha256)
           test -s downloads/metadata.json
 
-      - name: Restore native octocov report and PHPUnit HTML
+      - name: Restore fallback report while the source PR awaits review
+        if: steps.native.outputs.available != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -66,7 +77,9 @@ jobs:
       - name: Generate repository index and badges with upstream octocov
         uses: k1LoW/octocov-action@a167dc0dee441b7ffc45e1b862ab55ec0d87f278 # v1.5.2
         with:
+          github-token: ${{ github.token }}
           version: v0.83.5
+          config: ${{ steps.native.outputs.available == 'true' && '.octocov.yml' || '.octocov-fallback.yml' }}
 
       - name: Add project navigation and historical archive
         shell: bash
@@ -86,7 +99,9 @@ jobs:
             printf '%s\n' '# LibreSign code coverage' ''
             printf '%s\n' '[Coverage website source](https://github.com/LibreSign/coverage) · [LibreSign application source](https://github.com/LibreSign/libresign) · [Publishing workflow](https://github.com/LibreSign/coverage/blob/main/.github/workflows/pages.yml)' ''
             if jq -e '.preview == true' downloads/metadata.json >/dev/null; then
-              printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not a main-branch baseline.' ''
+              printf '%s\n' '**Homologation preview:** real PHPUnit coverage from PR #9387, not the main-branch baseline. Native artifacts will replace this automatically after the source PR is merged.' ''
+            else
+              printf '%s\n' 'Source: upstream Octocov native GitHub Actions artifacts from the LibreSign main branch.' ''
             fi
             printf 'Source: [GitHub Actions run %s](https://github.com/LibreSign/libresign/actions/runs/%s), commit %s.\n\n' "${source_run_id}" "${source_run_id}" "${source_sha}"
             printf '%s\n' '[View PHPUnit coverage by source line](./libresign/)'

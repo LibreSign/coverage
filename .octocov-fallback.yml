@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Transitional fallback only: until the source CI provides its native report.
+# Do not use the latest release as the permanent octocov transport.
+central:
+  root: site/index.md
+  reports:
+    datastores:
+      - local://reports
+  badges:
+    datastores:
+      - local://site/badges

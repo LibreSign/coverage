@@ -1,13 +1,12 @@
 # SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# Read the upstream octocov native report from the release snapshot.
-# No bespoke coverage parser or unsigned central.push commits.
+# Use the upstream, native Octocov datastore for public LibreSign repositories.
 central:
   root: site/index.md
   reports:
     datastores:
-      - local://reports
+      - artifact://LibreSign/libresign
   badges:
     datastores:
       - local://site/badges
